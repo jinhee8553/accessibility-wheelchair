@@ -7,6 +7,7 @@ __pycache__/
 venv/
 .DS_Store
 
+data/raw
 data/raw/
 data/processed/
 artifacts/
@@ -19,4 +20,3 @@ mlflow.db
 *.joblib
 *.pptx
 *.docx
-
