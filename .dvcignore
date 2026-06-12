@@ -1,0 +1,6 @@
+# DVC performance ignore rules.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+

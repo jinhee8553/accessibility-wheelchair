@@ -1,0 +1,11 @@
+pandas
+openpyxl
+scikit-learn
+xgboost
+lightgbm
+joblib
+matplotlib
+fastapi
+uvicorn
+pydantic
+

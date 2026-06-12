@@ -1,0 +1,7 @@
+outs:
+- md5: 542a599e59e4df02e700e32fe122cabd.dir
+  size: 2030797511
+  nfiles: 34
+  hash: md5
+  path: raw
+
