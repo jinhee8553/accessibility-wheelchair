@@ -1,0 +1,31 @@
+{
+  "problem": "Predict SAC wheelchair accessibility grade from planning-stage event metadata.",
+  "target": "accessibility_grade",
+  "labels": ["A", "B", "C", "D", "E"],
+  "metric": "macro F1",
+  "features": [
+    "genre_group",
+    "venue_type",
+    "is_weekend",
+    "duration_days",
+    "organizer_type",
+    "organizer"
+  ],
+  "excluded_columns": [
+    "paid_audience_count",
+    "wheelchair_booking_count",
+    "total_seats",
+    "general_seats",
+    "wheelchair_seats",
+    "wheelchair_seat_ratio",
+    "wheelchair_booking_rate_raw",
+    "overall_booking_rate",
+    "wheelchair_booking_rate"
+  ],
+  "split": {
+    "method": "stratified train/test split",
+    "test_size": 0.2,
+    "random_state": 42
+  }
+}
+

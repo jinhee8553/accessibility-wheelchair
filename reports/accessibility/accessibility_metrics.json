@@ -1,0 +1,252 @@
+{
+  "created_at": "2026-06-12T09:54:49.372558+00:00",
+  "dataset_path": "data/processed/accessibility_dataset.csv",
+  "rows": 485,
+  "features": [
+    "genre_group",
+    "venue_type",
+    "is_weekend",
+    "duration_days",
+    "organizer_type",
+    "organizer"
+  ],
+  "categorical_features": [
+    "genre_group",
+    "venue_type",
+    "organizer_type",
+    "organizer"
+  ],
+  "numeric_features": [
+    "is_weekend",
+    "duration_days"
+  ],
+  "target": "accessibility_grade",
+  "label_order": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E"
+  ],
+  "label_distribution": {
+    "A": 189,
+    "B": 54,
+    "C": 59,
+    "D": 119,
+    "E": 64
+  },
+  "split": {
+    "method": "stratified_train_test_split",
+    "test_size": 0.2,
+    "random_state": 42,
+    "train_rows": 388,
+    "test_rows": 97
+  },
+  "candidates": {
+    "DummyClassifier": {
+      "model": "most_frequent",
+      "accuracy": 0.3917525773195876,
+      "f1_macro": 0.1125925925925926,
+      "classification_report": {
+        "A": {
+          "precision": 0.3917525773195876,
+          "recall": 1.0,
+          "f1-score": 0.562962962962963,
+          "support": 38.0
+        },
+        "B": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 11.0
+        },
+        "C": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 12.0
+        },
+        "D": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 24.0
+        },
+        "E": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 12.0
+        },
+        "accuracy": 0.3917525773195876,
+        "macro avg": {
+          "precision": 0.07835051546391752,
+          "recall": 0.2,
+          "f1-score": 0.1125925925925926,
+          "support": 97.0
+        },
+        "weighted avg": {
+          "precision": 0.15347008183653948,
+          "recall": 0.3917525773195876,
+          "f1-score": 0.22054219167621228,
+          "support": 97.0
+        }
+      }
+    },
+    "RandomForestClassifier": {
+      "model": "RandomForestClassifier",
+      "accuracy": 0.5979381443298969,
+      "f1_macro": 0.5189173449804778,
+      "classification_report": {
+        "A": {
+          "precision": 0.9142857142857143,
+          "recall": 0.8421052631578947,
+          "f1-score": 0.8767123287671232,
+          "support": 38.0
+        },
+        "B": {
+          "precision": 0.2857142857142857,
+          "recall": 0.18181818181818182,
+          "f1-score": 0.2222222222222222,
+          "support": 11.0
+        },
+        "C": {
+          "precision": 0.2727272727272727,
+          "recall": 0.75,
+          "f1-score": 0.4,
+          "support": 12.0
+        },
+        "D": {
+          "precision": 0.6363636363636364,
+          "recall": 0.2916666666666667,
+          "f1-score": 0.4,
+          "support": 24.0
+        },
+        "E": {
+          "precision": 0.7272727272727273,
+          "recall": 0.6666666666666666,
+          "f1-score": 0.6956521739130435,
+          "support": 12.0
+        },
+        "accuracy": 0.5979381443298969,
+        "macro avg": {
+          "precision": 0.5672727272727272,
+          "recall": 0.546451355661882,
+          "f1-score": 0.5189173449804778,
+          "support": 97.0
+        },
+        "weighted avg": {
+          "precision": 0.6717365109117686,
+          "recall": 0.5979381443298969,
+          "f1-score": 0.6031684435520789,
+          "support": 97.0
+        }
+      }
+    },
+    "ExtraTreesClassifier": {
+      "model": "ExtraTreesClassifier",
+      "accuracy": 0.6082474226804123,
+      "f1_macro": 0.534874171580054,
+      "classification_report": {
+        "A": {
+          "precision": 0.9411764705882353,
+          "recall": 0.8421052631578947,
+          "f1-score": 0.8888888888888888,
+          "support": 38.0
+        },
+        "B": {
+          "precision": 1.0,
+          "recall": 0.18181818181818182,
+          "f1-score": 0.3076923076923077,
+          "support": 11.0
+        },
+        "C": {
+          "precision": 0.23076923076923078,
+          "recall": 0.75,
+          "f1-score": 0.35294117647058826,
+          "support": 12.0
+        },
+        "D": {
+          "precision": 0.8888888888888888,
+          "recall": 0.3333333333333333,
+          "f1-score": 0.48484848484848486,
+          "support": 24.0
+        },
+        "E": {
+          "precision": 0.6153846153846154,
+          "recall": 0.6666666666666666,
+          "f1-score": 0.64,
+          "support": 12.0
+        },
+        "accuracy": 0.6082474226804123,
+        "macro avg": {
+          "precision": 0.735243841126194,
+          "recall": 0.5547846889952153,
+          "f1-score": 0.534874171580054,
+          "support": 97.0
+        },
+        "weighted avg": {
+          "precision": 0.8067204677271385,
+          "recall": 0.6082474226804123,
+          "f1-score": 0.6259180506845758,
+          "support": 97.0
+        }
+      }
+    },
+    "XGBoostClassifier": {
+      "model": "XGBoostClassifier",
+      "accuracy": 0.6701030927835051,
+      "f1_macro": 0.5303072303072304,
+      "classification_report": {
+        "A": {
+          "precision": 0.9411764705882353,
+          "recall": 0.8421052631578947,
+          "f1-score": 0.8888888888888888,
+          "support": 38.0
+        },
+        "B": {
+          "precision": 1.0,
+          "recall": 0.18181818181818182,
+          "f1-score": 0.3076923076923077,
+          "support": 11.0
+        },
+        "C": {
+          "precision": 0.3333333333333333,
+          "recall": 0.08333333333333333,
+          "f1-score": 0.13333333333333333,
+          "support": 12.0
+        },
+        "D": {
+          "precision": 0.46,
+          "recall": 0.9583333333333334,
+          "f1-score": 0.6216216216216216,
+          "support": 24.0
+        },
+        "E": {
+          "precision": 0.875,
+          "recall": 0.5833333333333334,
+          "f1-score": 0.7,
+          "support": 12.0
+        },
+        "accuracy": 0.6701030927835051,
+        "macro avg": {
+          "precision": 0.7219019607843137,
+          "recall": 0.5297846889952154,
+          "f1-score": 0.5303072303072304,
+          "support": 97.0
+        },
+        "weighted avg": {
+          "precision": 0.7454093389933294,
+          "recall": 0.6701030927835051,
+          "f1-score": 0.6400135266114648,
+          "support": 97.0
+        }
+      }
+    }
+  },
+  "best_model": {
+    "name": "ExtraTreesClassifier",
+    "accuracy": 0.6082474226804123,
+    "f1_macro": 0.534874171580054
+  }
+}

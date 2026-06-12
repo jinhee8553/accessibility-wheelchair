@@ -20,3 +20,5 @@ mlflow.db
 *.joblib
 *.pptx
 *.docx
+
+!reports/**/*.csv
