@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>장애인 접근성 등급 진단 모델 구현 결과 v2 - 공연장 규모 기준</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 40px; line-height: 1.6; color: #222; }
+    h1, h2, h3 { color: #17324d; }
+    table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 14px; }
+    th, td { border: 1px solid #d7dde5; padding: 8px 10px; text-align: left; }
+    th { background: #eef3f8; }
+    code { background: #f3f5f7; padding: 2px 4px; border-radius: 4px; }
+    .summary { background: #f7fafc; border-left: 4px solid #4c78a8; padding: 16px 20px; margin-bottom: 28px; }
+    .version-note { border-left-color: #2f855a; }
+    .scale-definition { background: #fbfcfd; border: 1px solid #d7dde5; padding: 18px 20px; margin: 0 0 28px; }
+    img { max-width: 760px; width: 100%; border: 1px solid #d7dde5; margin: 12px 0 24px; }
+  </style>
+</head>
+<body>
+
+  <div class="summary version-note">
+    <h1>장애인 접근성 등급 진단 모델 구현 결과 v2</h1>
+    <p>생성 시각: 2026-06-10T10:52:42+09:00</p>
+    <p>최종 모델: <strong>XGBoostClassifier</strong> / macro F1: <strong>0.4570</strong> / accuracy: <strong>0.5500</strong></p>
+    <p>v2 핵심 변경점: 공연장 규모 기준을 리포트 전면에 분리해 명시했다. 모델과 데이터 산출물은 현재 processed 데이터 기준으로 해석했다.</p>
+  </div>
+  <section class="scale-definition">
+    <h1>v2 핵심 기준. 공연장 규모 분류</h1>
+    <p>이번 리포트에서 <code>venue_type</code>은 좌석 수를 다시 계산해 만든 구간값이 아니라, 전처리 단계에서 공연장명을 기준으로 확정한 규모 라벨이다. 따라서 모델의 <code>cat__venue_type_대형</code>, <code>cat__venue_type_중형</code>, <code>cat__venue_type_소극장</code> feature는 아래 공연장 그룹을 의미한다.</p>
+    <table>
+      <tr><th>규모 라벨</th><th>공연장</th><th>현재 데이터 행 수</th></tr>
+      <tr><td>대형</td><td>오페라극장 (40건), 콘서트홀 (228건)</td><td>268</td></tr>
+<tr><td>중형</td><td>CJ 토월극장 (22건), IBK기업은행챔버홀 (1건), 리사이틀홀 (122건)</td><td>145</td></tr>
+<tr><td>소극장/소형</td><td>인춘아트홀 (72건), 자유소극장 (15건)</td><td>87</td></tr>
+    </table>
+    <p>해석상 <code>소극장</code>은 소형 공연장 그룹으로 보면 된다. 현재 데이터에는 매핑되지 않은 <code>기타</code> 공연장이 없다.</p>
+  </section>
+<h1>Step 1. 데이터셋 기준 확정</h1>
+<h2>입력 파일</h2>
+<ul>
+<li>원본: `data/raw/ap_whellchair_hall_total.csv`</li>
+<li>전처리 결과: `data/processed/accessibility_dataset.csv`</li>
+</ul>
+<h2>데이터 크기</h2>
+<table>
+<tr><th>항목</th><th>값</th></tr>
+<tr><td>원본 행 수</td><td>500</td></tr>
+<tr><td>전처리 후 행 수</td><td>500</td></tr>
+<tr><td>전처리 후 컬럼 수</td><td>23</td></tr>
+</table>
+<h2>사용 원천 컬럼</h2>
+<ul>
+<li>공연 정보: `제목`, `공연시작일`, `공연종료일`, `장르`, `구분`, `공연장`, `대관 기업명`</li>
+<li>좌석/예매 정보: `휠체어석예매수`, `total/총좌석수`, `일반석`, `장애인석`</li>
+</ul>
+<h2>결측치 점검</h2>
+<table>
+<tr><th>column</th><th>missing</th></tr>
+<tr><td>title</td><td>0</td></tr>
+<tr><td>start_date</td><td>0</td></tr>
+<tr><td>end_date</td><td>0</td></tr>
+<tr><td>year</td><td>0</td></tr>
+<tr><td>month</td><td>0</td></tr>
+<tr><td>day_of_week</td><td>0</td></tr>
+<tr><td>is_weekend</td><td>0</td></tr>
+<tr><td>duration_days</td><td>0</td></tr>
+<tr><td>booking_lead_days</td><td>0</td></tr>
+<tr><td>genre</td><td>0</td></tr>
+<tr><td>genre_group</td><td>0</td></tr>
+<tr><td>venue</td><td>0</td></tr>
+<tr><td>venue_type</td><td>0</td></tr>
+<tr><td>organizer_type</td><td>0</td></tr>
+<tr><td>organizer</td><td>0</td></tr>
+<tr><td>start_time</td><td>0</td></tr>
+<tr><td>wheelchair_booking_count</td><td>0</td></tr>
+<tr><td>total_seats</td><td>0</td></tr>
+<tr><td>general_seats</td><td>0</td></tr>
+<tr><td>wheelchair_seats</td><td>0</td></tr>
+<tr><td>wheelchair_seat_ratio</td><td>0</td></tr>
+<tr><td>wheelchair_booking_rate</td><td>0</td></tr>
+<tr><td>accessibility_grade</td><td>0</td></tr>
+</table>
+<hr>
+<h1>Step 2. 타겟 라벨 설계</h1>
+<h2>타겟 변수</h2>
+<ul>
+<li>타겟: `accessibility_grade`</li>
+<li>기준값: `wheelchair_booking_rate = wheelchair_booking_count / wheelchair_seats`</li>
+</ul>
+<h2>등급 기준</h2>
+<table>
+<tr><th>등급</th><th>기준</th></tr>
+<tr><td>A</td><td>`wheelchair_booking_rate &gt;= 1.00`</td></tr>
+<tr><td>B</td><td>`0.50 &lt;= wheelchair_booking_rate &lt; 1.00`</td></tr>
+<tr><td>C</td><td>`0.25 &lt;= wheelchair_booking_rate &lt; 0.50`</td></tr>
+<tr><td>D</td><td>`0.10 &lt;= wheelchair_booking_rate &lt; 0.25`</td></tr>
+<tr><td>E</td><td>`wheelchair_booking_rate &lt; 0.10`</td></tr>
+</table>
+<p>원래 구상한 `0건이면 E` 방식은 현재 학습 파일의 `휠체어석예매수`가 모두 1 이상이라 E 등급이 사라지는 문제가 있었다.</p>
+<p>따라서 5등급 분류가 가능하도록 휠체어석 대비 예매율 구간을 기준으로 라벨링했다.</p>
+<h2>등급별 샘플 수</h2>
+<table>
+<tr><th>accessibility_grade</th><th>count</th></tr>
+<tr><td>A</td><td>58</td></tr>
+<tr><td>B</td><td>110</td></tr>
+<tr><td>C</td><td>110</td></tr>
+<tr><td>D</td><td>64</td></tr>
+<tr><td>E</td><td>158</td></tr>
+</table>
+<h2>예매율 요약</h2>
+<table>
+<tr><th></th><th>value</th></tr>
+<tr><td>count</td><td>500.0</td></tr>
+<tr><td>mean</td><td>0.40106515151515143</td></tr>
+<tr><td>std</td><td>0.5105575400138029</td></tr>
+<tr><td>min</td><td>0.041666666666666664</td></tr>
+<tr><td>25%</td><td>0.08333333333333333</td></tr>
+<tr><td>50%</td><td>0.25</td></tr>
+<tr><td>75%</td><td>0.5</td></tr>
+<tr><td>max</td><td>4.3</td></tr>
+</table>
+<hr>
+<h1>Step 3. Feature Engineering</h1>
+<h2>Feature 목록</h2>
+<table>
+<tr><th>feature</th><th>설명</th><th>사용</th></tr>
+<tr><td>booking_lead_days</td><td>공연시작일 - 집계최초일자. 현재 파일에서는 첫 집계일을 첫 예매일 대체값으로 사용</td><td>학습</td></tr>
+<tr><td>genre_group</td><td>장르 정규화 결과</td><td>학습</td></tr>
+<tr><td>venue_type</td><td>공연장명 기준 규모 매핑. 대형=콘서트홀/오페라극장, 중형=CJ 토월극장/IBK기업은행챔버홀/리사이틀홀, 소극장=인춘아트홀/자유소극장</td><td>학습</td></tr>
+<tr><td>is_weekend</td><td>공연시작일 기준 주말 여부</td><td>학습</td></tr>
+<tr><td>duration_days</td><td>공연종료일 - 공연시작일 + 1</td><td>학습</td></tr>
+<tr><td>organizer_type</td><td>기획 주체. 대관/기획 등</td><td>학습</td></tr>
+<tr><td>organizer</td><td>대관 기업 또는 기획 주체명</td><td>학습</td></tr>
+<tr><td>start_time</td><td>현재 원천 파일에 시간이 없어 0으로 고정한 placeholder</td><td>학습</td></tr>
+<tr><td>wheelchair_booking_count</td><td>휠체어석 예매 수. 타겟 산출에 직접 사용</td><td>학습 제외</td></tr>
+<tr><td>total_seats</td><td>공연장 전체 좌석 수</td><td>분석/대시보드용. 학습 제외</td></tr>
+<tr><td>general_seats</td><td>일반 판매석 수</td><td>분석/대시보드용. 학습 제외</td></tr>
+<tr><td>wheelchair_seats</td><td>장애인석 수. 타겟 산출의 분모</td><td>분석/대시보드용. 학습 제외</td></tr>
+<tr><td>wheelchair_seat_ratio</td><td>전체 좌석 중 휠체어석 비율</td><td>분석/대시보드용. 학습 제외</td></tr>
+<tr><td>wheelchair_booking_rate</td><td>휠체어석 예매율. 타겟 라벨 산출값</td><td>학습 제외</td></tr>
+</table>
+<h2>학습에서 제외한 좌석 정보</h2>
+<p>`wheelchair_booking_count`, `total_seats`, `general_seats`, `wheelchair_seats`, `wheelchair_seat_ratio`, `wheelchair_booking_rate`는 모델 학습 feature에서 제외한다.</p>
+<p>이 값들은 접근성 등급 산출에 직접 연결되거나 좌석 수 신호가 강한 값이라 모델이 공연 특성 대신 사후 예매/좌석 정보를 보고 맞추는 문제가 생길 수 있기 때문이다.</p>
+<h2>주요 범주 분포</h2>
+<h3>장르 그룹</h3>
+<table>
+<tr><th>genre_group</th><th>count</th></tr>
+<tr><td>클래식</td><td>410</td></tr>
+<tr><td>오페라</td><td>21</td></tr>
+<tr><td>발레</td><td>16</td></tr>
+<tr><td>연극</td><td>15</td></tr>
+<tr><td>뮤지컬</td><td>15</td></tr>
+<tr><td>기타</td><td>9</td></tr>
+<tr><td>기타(복합)</td><td>6</td></tr>
+<tr><td>이벤트콘서트</td><td>5</td></tr>
+<tr><td>무용</td><td>2</td></tr>
+<tr><td>크로스오버</td><td>1</td></tr>
+</table>
+<h3>공연장 규모</h3>
+<table>
+<tr><th>venue_type</th><th>count</th></tr>
+<tr><td>대형</td><td>268</td></tr>
+<tr><td>중형</td><td>145</td></tr>
+<tr><td>소극장</td><td>87</td></tr>
+</table>
+<hr>
+<h1>Step 4. 접근성 등급 분류 모델</h1>
+<h2>문제 정의</h2>
+<ul>
+<li>문제 유형: 다중 분류</li>
+<li>타겟 변수: `accessibility_grade`</li>
+<li>등급: A~E</li>
+<li>주 평가 지표: macro F1</li>
+</ul>
+<h2>학습 Feature</h2>
+<table>
+<tr><th>feature</th></tr>
+<tr><td>booking_lead_days</td></tr>
+<tr><td>genre_group</td></tr>
+<tr><td>venue_type</td></tr>
+<tr><td>is_weekend</td></tr>
+<tr><td>duration_days</td></tr>
+<tr><td>organizer_type</td></tr>
+<tr><td>organizer</td></tr>
+<tr><td>start_time</td></tr>
+</table>
+<h2>학습 제외 컬럼</h2>
+<p>아래 컬럼은 좌석 수 또는 타겟 산출에 직접 연결되는 값이므로 모델 feature에서 제외했다.</p>
+<table>
+<tr><th>excluded_column</th></tr>
+<tr><td>wheelchair_booking_count</td></tr>
+<tr><td>total_seats</td></tr>
+<tr><td>general_seats</td></tr>
+<tr><td>wheelchair_seats</td></tr>
+<tr><td>wheelchair_seat_ratio</td></tr>
+<tr><td>wheelchair_booking_rate</td></tr>
+</table>
+<h2>등급 분포</h2>
+<table>
+<tr><th></th><th>count</th></tr>
+<tr><td>A</td><td>58</td></tr>
+<tr><td>B</td><td>110</td></tr>
+<tr><td>C</td><td>110</td></tr>
+<tr><td>D</td><td>64</td></tr>
+<tr><td>E</td><td>158</td></tr>
+</table>
+<h2>데이터 분할</h2>
+<ul>
+<li>방식: stratified train/test split</li>
+<li>test_size: 0.2</li>
+<li>random_state: 42</li>
+<li>학습 행 수: 400</li>
+<li>검증 행 수: 100</li>
+</ul>
+<p>데이터 수가 500행으로 작아 각 등급이 검증 세트에 포함되도록 stratified split을 사용했다.</p>
+<h2>모델 비교</h2>
+<table>
+<tr><th>model</th><th>accuracy</th><th>f1_macro</th></tr>
+<tr><td>XGBoostClassifier</td><td>0.55</td><td>0.457</td></tr>
+<tr><td>ExtraTreesClassifier</td><td>0.52</td><td>0.4479</td></tr>
+<tr><td>RandomForestClassifier</td><td>0.52</td><td>0.4479</td></tr>
+<tr><td>LightGBMClassifier</td><td>0.46</td><td>0.4068</td></tr>
+<tr><td>DummyClassifier</td><td>0.31</td><td>0.0947</td></tr>
+</table>
+<h2>후보 알고리즘 구현 상태</h2>
+<table>
+<tr><th>algorithm</th><th>status</th></tr>
+<tr><td>RandomForest</td><td>구현 및 학습 완료</td></tr>
+<tr><td>ExtraTrees</td><td>구현 및 학습 완료</td></tr>
+<tr><td>XGBoost</td><td>구현 및 학습 완료</td></tr>
+<tr><td>LightGBM</td><td>구현 및 학습 완료</td></tr>
+</table>
+<h2>최종 선택 모델</h2>
+<ul>
+<li>모델: `XGBoostClassifier`</li>
+<li>저장 경로: `artifacts/accessibility_classifier.joblib`</li>
+<li>메트릭 저장 경로: `reports/accessibility/accessibility_metrics.json`</li>
+</ul>
+<h2>상위 Feature Importance</h2>
+<table>
+<tr><th>rank</th><th>feature</th><th>importance</th></tr>
+<tr><td>f01</td><td>cat__venue_type_중형</td><td>0.17122198641300201</td></tr>
+<tr><td>f02</td><td>cat__venue_type_대형</td><td>0.13418793678283691</td></tr>
+<tr><td>f03</td><td>cat__venue_type_소극장</td><td>0.06697431951761246</td></tr>
+<tr><td>f04</td><td>cat__genre_group_클래식</td><td>0.04212233051657677</td></tr>
+<tr><td>f05</td><td>num__duration_days</td><td>0.03146527335047722</td></tr>
+<tr><td>f06</td><td>cat__organizer_영음예술기획</td><td>0.028804663568735123</td></tr>
+<tr><td>f07</td><td>cat__organizer_크레디아뮤직앤아티스트</td><td>0.026065643876791</td></tr>
+<tr><td>f08</td><td>cat__genre_group_발레</td><td>0.024142613634467125</td></tr>
+<tr><td>f09</td><td>cat__organizer_주식회사 목프로덕션</td><td>0.023487398400902748</td></tr>
+<tr><td>f10</td><td>cat__organizer_위드클래식</td><td>0.018390147015452385</td></tr>
+</table>
+<h2>산출물</h2>
+<ul>
+<li>혼동행렬: `reports/accessibility/accessibility_confusion_matrix.png`</li>
+<li>Feature importance CSV: `reports/accessibility/accessibility_feature_importance.csv`</li>
+<li>Feature importance 이미지: `reports/accessibility/accessibility_feature_importance.png`</li>
+</ul>
+  <h2>시각화 산출물</h2>
+  <h3>등급 분포</h3>
+  <img src="accessibility_label_distribution.png" alt="Accessibility label distribution">
+  <h3>혼동행렬</h3>
+  <img src="accessibility_confusion_matrix.png" alt="Accessibility confusion matrix">
+  <h3>Feature Importance</h3>
+  <img src="accessibility_feature_importance.png" alt="Accessibility feature importance">
+</body>
+</html>
