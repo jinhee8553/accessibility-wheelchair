@@ -1,0 +1,26 @@
+﻿feature,importance,rank
+cat__venue_type_대형,0.23856147528136634,f01
+cat__venue_type_소극장,0.2020622225446684,f02
+cat__venue_type_중형,0.1648547008505029,f03
+cat__genre_group_클래식,0.05486491153549644,f04
+num__duration_days,0.0481529370567003,f05
+cat__genre_group_연극,0.03309009956626114,f06
+cat__organizer_infrequent_sklearn,0.024404565731250556,f07
+cat__organizer_조인클래식,0.021698892295236492,f08
+cat__genre_group_발레,0.017388085262538752,f09
+cat__genre_group_뮤지컬,0.015327302649769945,f10
+cat__organizer_예술의전당,0.014793732918127394,f11
+num__is_weekend,0.013487957380973298,f12
+cat__organizer_type_기획,0.013103048726918597,f13
+cat__organizer_지클레프,0.012702913729966873,f14
+cat__organizer_type_대관,0.012514068738396087,f15
+cat__organizer_(재)KBS 교향악단,0.01005681632443237,f16
+cat__organizer_(주)씨제이이엔엠,0.009538315895680188,f17
+cat__organizer_위드클래식,0.00903880683342307,f18
+cat__organizer_예인예술기획,0.008332473273272306,f19
+cat__genre_group_오페라,0.008246625267918728,f20
+cat__organizer_국립오페라단,0.007072572818510975,f21
+cat__organizer_크레디아뮤직앤아티스트,0.005789090955931353,f22
+cat__organizer_제이에스클래식,0.004298198749779915,f23
+cat__organizer_음악교육신문사,0.0038998736564394617,f24
+cat__organizer_영음예술기획,0.003621219037814592,f25
