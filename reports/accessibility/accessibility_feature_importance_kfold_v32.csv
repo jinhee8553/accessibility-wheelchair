@@ -1,0 +1,26 @@
+﻿feature,importance,rank
+cat__venue_type_대형,0.24028373914024417,f01
+cat__venue_type_중형,0.14713587963034785,f02
+cat__genre_group_클래식,0.1232469065645181,f03
+cat__venue_type_소극장,0.0665435521902061,f04
+num__duration_days,0.04641221057663546,f05
+cat__genre_group_발레,0.04143790522559384,f06
+cat__genre_group_연극,0.03106934593904928,f07
+cat__organizer_지클레프,0.024260198616322524,f08
+cat__genre_group_뮤지컬,0.02393193139186061,f09
+cat__organizer_예인예술기획,0.022530763444511645,f10
+cat__organizer_(주)스테이지원,0.020229983687477294,f11
+cat__organizer_(재)한국문화재단,0.017079311857875996,f12
+cat__organizer_type_대관,0.016458290466304863,f13
+cat__genre_group_오페라,0.016102514187848752,f14
+num__is_weekend,0.0156730444418154,f15
+cat__organizer_type_기획,0.01527603169325049,f16
+cat__genre_group_기타(복합),0.013067014650312361,f17
+cat__organizer_예술의전당,0.011918952257687177,f18
+cat__organizer_(재)국립발레단,0.010151184005171515,f19
+cat__organizer_조인클래식,0.009552519326832296,f20
+cat__organizer_콘서트디자인,0.0074644211572428495,f21
+cat__organizer_크레디아뮤직앤아티스트,0.007363266162383423,f22
+cat__organizer_(재)KBS 교향악단,0.0066318271604291065,f23
+cat__organizer_(주)스톰프뮤직,0.00570113427307062,f24
+cat__organizer_(재)국립합창단,0.005569450951544341,f25
