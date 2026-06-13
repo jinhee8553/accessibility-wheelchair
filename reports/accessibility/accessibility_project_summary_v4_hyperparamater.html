@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>장애인 접근성 등급 진단 모델 구현 결과 v4 - 하이퍼파라미터 튜닝</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1d2733;
+      --muted: #657386;
+      --line: #d9e1ea;
+      --soft: #f6f8fb;
+      --panel: #ffffff;
+      --accent: #2f6f9f;
+      --accent-2: #7a6b2f;
+      --code: #eef2f6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #eef2f6;
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.62;
+    }
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 40px 28px 56px;
+    }
+    .hero {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-top: 5px solid var(--accent);
+      padding: 30px 32px;
+      margin-bottom: 18px;
+    }
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+    h1, h2, h3, h4 {
+      color: #17324d;
+      letter-spacing: 0;
+      line-height: 1.28;
+    }
+    h1 { margin: 0 0 12px; font-size: 30px; }
+    h2 { margin: 0 0 18px; font-size: 23px; }
+    h3 { margin: 26px 0 10px; font-size: 18px; }
+    h4 { margin: 20px 0 8px; font-size: 15px; color: var(--muted); }
+    p { margin: 8px 0; }
+    .summary-text {
+      max-width: 900px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+    }
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 22px;
+    }
+    .metric {
+      border: 1px solid var(--line);
+      background: var(--soft);
+      padding: 14px 16px;
+      min-height: 86px;
+    }
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .metric strong {
+      display: block;
+      margin-top: 7px;
+      font-size: 21px;
+      color: var(--ink);
+      word-break: break-word;
+    }
+    .note {
+      background: #fbfaf3;
+      border: 1px solid #e4dcc2;
+      border-left: 5px solid var(--accent-2);
+      padding: 16px 18px;
+      margin: 0 0 18px;
+    }
+    .report-section, .best-params, .visuals {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      padding: 26px 30px;
+      margin: 18px 0;
+    }
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      margin: 14px 0 20px;
+      border: 1px solid var(--line);
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 560px;
+      font-size: 14px;
+      background: #fff;
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 9px 11px;
+      text-align: left;
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: 0; }
+    th {
+      background: #f1f5f9;
+      color: #2d3d50;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    code {
+      background: var(--code);
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.92em;
+    }
+    ul { padding-left: 20px; margin: 8px 0 16px; }
+    li + li { margin-top: 5px; }
+    .visual-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+    figure {
+      margin: 0;
+      border: 1px solid var(--line);
+      background: #fff;
+      padding: 12px;
+    }
+    figcaption {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    @media (max-width: 860px) {
+      .page { padding: 22px 14px 36px; }
+      .hero, .report-section, .best-params, .visuals { padding: 20px; }
+      .metric-grid, .visual-grid { grid-template-columns: 1fr; }
+      h1 { font-size: 24px; }
+      h2 { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <p class="eyebrow">Accessibility Model Report v4 Hyperparamater</p>
+      <h1>장애인 접근성 등급 진단 모델 구현 결과</h1>
+      <p class="summary-text">모델별 하이퍼파라미터 탐색 공간을 정의하고, stratified 5-fold 기반 macro F1로 최적 조합을 비교했다.</p>
+      <div class="metric-grid">
+        <div class="metric"><span>최종 모델</span><strong>RandomForestClassifier</strong></div>
+        <div class="metric"><span>OOF Macro F1</span><strong>0.5019</strong></div>
+        <div class="metric"><span>D/E Macro Recall</span><strong>0.4529</strong></div>
+        <div class="metric"><span>D/E Macro F2</span><strong>0.4733</strong></div>
+      </div>
+    </header>
+    <section class="note">
+      <strong>핵심 변경점</strong>
+      <p>v4에서는 기본 파라미터 비교를 넘어 각 모델 후보별로 별도 탐색 공간을 두고 최적 하이퍼파라미터를 선택했다.</p>
+      <p>생성 시각: 2026-06-13 10:04:54 UTC+09:00 / 실행 환경: <code>conda env pronii</code></p>
+    </section>
+    <section class="best-params">
+      <h2>최종 모델 하이퍼파라미터</h2>
+<div class="table-wrap"><table>
+<tr><th>parameter</th><th>value</th></tr>
+<tr><td>n_estimators</td><td>200</td></tr>
+<tr><td>min_samples_leaf</td><td>1</td></tr>
+<tr><td>max_features</td><td></td></tr>
+<tr><td>max_depth</td><td>5</td></tr>
+</table></div>
+    </section>
+    <section class="report-section">
+<h2>Step 1. 데이터셋 기준 확정</h2>
+<h3>입력 파일</h3>
+<ul>
+<li>원본: <code>data/raw/ap_whellchair_hall_total.csv</code></li>
+<li>전처리 결과: <code>data/processed/accessibility_dataset.csv</code></li>
+</ul>
+<h3>데이터 크기</h3>
+<div class="table-wrap"><table>
+<tr><th>항목</th><th>값</th></tr>
+<tr><td>원본 행 수</td><td>500</td></tr>
+<tr><td>전처리 후 행 수</td><td>485</td></tr>
+<tr><td>전처리 후 컬럼 수</td><td>26</td></tr>
+</table></div>
+<h3>제외 행 요약</h3>
+<ul>
+<li>제외 행 수: <code>15</code>행</li>
+<li>제외 이유: 새 metric의 분모인 <code>overall_booking_rate = paid_audience_count / total_seats</code>가 0이 되면 <code>wheelchair_booking_rate = wheelchair_booking_rate_raw / overall_booking_rate</code>를 정의할 수 없다.</li>
+<li>이번 데이터에서 제외된 15개 행은 모두 <code>paid_audience_count &lt;= 0</code>, 즉 <code>유료입장객수 = 0</code>인 공연이다.</li>
+</ul>
+<h4>제외 사유별 건수</h4>
+<div class="table-wrap"><table>
+<tr><th>제외 사유</th><th>count</th></tr>
+<tr><td>paid_audience_count &lt;= 0</td><td>15</td></tr>
+</table></div>
+<h4>제외된 공연 목록</h4>
+<div class="table-wrap"><table>
+<tr><th>raw_index</th><th>title</th><th>start_date</th><th>venue</th><th>genre</th><th>paid_audience_count</th><th>wheelchair_booking_count</th><th>total_seats</th><th>wheelchair_seats</th><th>제외 사유</th></tr>
+<tr><td>10</td><td>2023 대원문화재단 신년음악회</td><td>2023-01-07</td><td>콘서트홀</td><td>교향곡</td><td>0</td><td>25</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>31</td><td>2024 IBK음악회</td><td>2024-10-16</td><td>콘서트홀</td><td>클래식</td><td>0</td><td>24</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>40</td><td>2024 서울시향 크리스티안 테츨라프의 브람스 바이올린 협주곡 ①</td><td>2024-09-05</td><td>콘서트홀</td><td>교향곡</td><td>0</td><td>4</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>42</td><td>2024 신년음악회</td><td>2024-01-09</td><td>콘서트홀</td><td>클래식</td><td>0</td><td>20</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>50</td><td>2024 예술의전당 회원음악회</td><td>2024-09-07</td><td>콘서트홀</td><td>클래식</td><td>0</td><td>1</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>51</td><td>2024 장애인식개선을 위한 하트 투 하트 콘서트</td><td>2024-11-19</td><td>콘서트홀</td><td>클래식</td><td>0</td><td>48</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>60</td><td>IBK 음악회  with 조수미 &amp; 서혜경 월드 클래식</td><td>2023-09-08</td><td>콘서트홀</td><td>크로스오버</td><td>0</td><td>24</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>217</td><td>못 말리는 프랑켄슈타인</td><td>2024-04-24</td><td>CJ 토월극장</td><td>연극</td><td>0</td><td>20</td><td>1004</td><td>10</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>264</td><td>서강은 피아노 독주회</td><td>2023-11-10</td><td>인춘아트홀</td><td>독주</td><td>0</td><td>2</td><td>100</td><td>2</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>270</td><td>소프라노 노정애 독창회</td><td>2024-04-12</td><td>인춘아트홀</td><td>클래식</td><td>0</td><td>2</td><td>100</td><td>2</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>378</td><td>장애인식개선을 위한 &lt;하트 투 하트 콘서트&gt;</td><td>2023-08-29</td><td>콘서트홀</td><td>클래식</td><td>0</td><td>24</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>392</td><td>제14회ARKO한국창작음악제(양악부문)</td><td>2023-02-01</td><td>콘서트홀</td><td>교향곡</td><td>0</td><td>4</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>393</td><td>제15회ARKO한국창작음악제(양악부문)</td><td>2024-02-06</td><td>콘서트홀</td><td>교향곡</td><td>0</td><td>8</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>399</td><td>조성진 삼성호암상 수상기념 리사이틀</td><td>2024-06-18</td><td>콘서트홀</td><td>클래식</td><td>0</td><td>24</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>467</td><td>한국예술종합학교 음악원 개원30주년 기념음악회</td><td>2023-04-12</td><td>콘서트홀</td><td>교향곡</td><td>0</td><td>48</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+</table></div>
+<h3>사용 원천 컬럼</h3>
+<ul>
+<li>공연 정보: <code>제목</code>, <code>공연시작일</code>, <code>공연종료일</code>, <code>장르</code>, <code>구분</code>, <code>공연장</code>, <code>대관 기업명</code></li>
+<li>좌석/예매 정보: <code>유료입장객수</code>, <code>휠체어석예매수</code>, <code>total/총좌석수</code>, <code>일반석</code>, <code>장애인석</code></li>
+</ul>
+<h3>전처리 수행 내용</h3>
+<div class="table-wrap"><table>
+<tr><th>전처리 항목</th><th>내용</th></tr>
+<tr><td>컬럼 표준화</td><td><code>제목</code>, <code>공연시작일</code>, <code>공연종료일</code>, <code>집계최초일자</code>, <code>장르</code>, <code>구분</code>, <code>공연장</code>, <code>대관 기업명</code>, <code>유료입장객수</code>, <code>휠체어석예매수</code>, <code>총좌석수</code>, <code>일반석</code>, <code>장애인석</code>을 영문 컬럼명으로 변경</td></tr>
+<tr><td>타입 변환</td><td><code>start_date</code>, <code>end_date</code>, <code>first_booking_date</code>는 날짜형으로 변환하고, 좌석/예매 수 컬럼은 숫자형으로 변환</td></tr>
+<tr><td>유효 행 필터링</td><td>날짜, 유료입장객수, 휠체어석예매수, 총좌석수, 장애인석이 결측인 행을 제외하고 <code>wheelchair_seats &gt; 0</code>, <code>total_seats &gt; 0</code>, <code>paid_audience_count &gt; 0</code> 조건만 유지</td></tr>
+<tr><td>텍스트 정리</td><td><code>genre</code>, <code>organizer_type</code>, <code>organizer</code>, <code>venue</code>의 결측/빈 문자열을 <code>unknown</code>으로 채우고 앞뒤 공백 제거</td></tr>
+<tr><td>범주 매핑</td><td>세부 장르를 <code>genre_group</code>으로 정규화하고, 공연장명을 기준으로 <code>venue_type</code>을 대형/중형/소극장/기타로 매핑</td></tr>
+<tr><td>날짜 파생변수</td><td><code>year</code>, <code>month</code>, <code>day_of_week</code>, <code>is_weekend</code>, <code>duration_days</code>, <code>booking_lead_days</code> 생성</td></tr>
+<tr><td>예매율 파생변수</td><td><code>wheelchair_booking_rate_raw = wheelchair_booking_count / wheelchair_seats</code>, <code>overall_booking_rate = paid_audience_count / total_seats</code>, <code>wheelchair_booking_rate = wheelchair_booking_rate_raw / overall_booking_rate</code> 생성</td></tr>
+<tr><td>좌석 비율 파생변수</td><td><code>wheelchair_seat_ratio = wheelchair_seats / total_seats</code> 생성</td></tr>
+<tr><td>타겟 라벨링</td><td>보정 예매율 <code>wheelchair_booking_rate</code>를 A~E 구간으로 나누어 <code>accessibility_grade</code> 생성</td></tr>
+<tr><td>출력 정렬</td><td><code>start_date</code>, <code>title</code> 기준으로 정렬한 뒤 <code>data/processed/accessibility_dataset.csv</code>로 저장</td></tr>
+</table></div>
+<h3>결측치 점검</h3>
+<div class="table-wrap"><table>
+<tr><th>column</th><th>missing</th></tr>
+<tr><td>title</td><td>0</td></tr>
+<tr><td>start_date</td><td>0</td></tr>
+<tr><td>end_date</td><td>0</td></tr>
+<tr><td>year</td><td>0</td></tr>
+<tr><td>month</td><td>0</td></tr>
+<tr><td>day_of_week</td><td>0</td></tr>
+<tr><td>is_weekend</td><td>0</td></tr>
+<tr><td>duration_days</td><td>0</td></tr>
+<tr><td>booking_lead_days</td><td>0</td></tr>
+<tr><td>genre</td><td>0</td></tr>
+<tr><td>genre_group</td><td>0</td></tr>
+<tr><td>venue</td><td>0</td></tr>
+<tr><td>venue_type</td><td>0</td></tr>
+<tr><td>organizer_type</td><td>0</td></tr>
+<tr><td>organizer</td><td>0</td></tr>
+<tr><td>start_time</td><td>0</td></tr>
+<tr><td>paid_audience_count</td><td>0</td></tr>
+<tr><td>wheelchair_booking_count</td><td>0</td></tr>
+<tr><td>total_seats</td><td>0</td></tr>
+<tr><td>general_seats</td><td>0</td></tr>
+<tr><td>wheelchair_seats</td><td>0</td></tr>
+<tr><td>wheelchair_seat_ratio</td><td>0</td></tr>
+<tr><td>wheelchair_booking_rate_raw</td><td>0</td></tr>
+<tr><td>overall_booking_rate</td><td>0</td></tr>
+<tr><td>wheelchair_booking_rate</td><td>0</td></tr>
+<tr><td>accessibility_grade</td><td>0</td></tr>
+</table></div>
+</section>
+<section class="report-section">
+<h2>Step 2. 타겟 라벨 설계</h2>
+<h3>타겟 변수</h3>
+<ul>
+<li>타겟: <code>accessibility_grade</code></li>
+<li>기준값: <code>wheelchair_booking_rate = (wheelchair_booking_count / wheelchair_seats) / (paid_audience_count / total_seats)</code></li>
+<li>해석: 전체 예매율 대비 휠체어석 예매율. <code>1.0</code>이면 전체 좌석 예매율과 휠체어석 예매율이 같은 수준이다.</li>
+</ul>
+<h3>등급 기준</h3>
+<div class="table-wrap"><table>
+<tr><th>등급</th><th>기준</th></tr>
+<tr><td>A</td><td><code>wheelchair_booking_rate &gt;= 1.00</code></td></tr>
+<tr><td>B</td><td><code>0.50 &lt;= wheelchair_booking_rate &lt; 1.00</code></td></tr>
+<tr><td>C</td><td><code>0.25 &lt;= wheelchair_booking_rate &lt; 0.50</code></td></tr>
+<tr><td>D</td><td><code>0.10 &lt;= wheelchair_booking_rate &lt; 0.25</code></td></tr>
+<tr><td>E</td><td><code>wheelchair_booking_rate &lt; 0.10</code></td></tr>
+</table></div>
+<p>기존 <code>wheelchair_booking_count / wheelchair_seats</code> 방식은 장기 공연에서 공연 회차/기간 효과가 크게 반영되어 값이 과도하게 커질 수 있었다.</p>
+<p>따라서 전체 예매율로 한 번 더 나눈 상대 예매율을 기준으로 라벨링했다.</p>
+<h3>등급별 샘플 수</h3>
+<div class="table-wrap"><table>
+<tr><th>accessibility_grade</th><th>count</th></tr>
+<tr><td>A</td><td>189</td></tr>
+<tr><td>B</td><td>54</td></tr>
+<tr><td>C</td><td>59</td></tr>
+<tr><td>D</td><td>119</td></tr>
+<tr><td>E</td><td>64</td></tr>
+</table></div>
+<h3>예매율 요약</h3>
+<div class="table-wrap"><table>
+<tr><th></th><th>value</th></tr>
+<tr><td>count</td><td>485.0</td></tr>
+<tr><td>mean</td><td>1.8491404516428849</td></tr>
+<tr><td>std</td><td>5.7195291368038</td></tr>
+<tr><td>min</td><td>0.010128773749074131</td></tr>
+<tr><td>25%</td><td>0.15654145995747698</td></tr>
+<tr><td>50%</td><td>0.5034973468403281</td></tr>
+<tr><td>75%</td><td>2.058139534883721</td></tr>
+<tr><td>max</td><td>104.375</td></tr>
+</table></div>
+</section>
+<section class="report-section">
+<h2>Step 3. Feature Engineering</h2>
+<h3>Feature 목록</h3>
+<div class="table-wrap"><table>
+<tr><th>feature</th><th>설명</th><th>사용</th></tr>
+<tr><td>booking_lead_days</td><td>공연시작일 - 집계최초일자. 현재 데이터에서는 전체 값이 0인 상수 컬럼</td><td>학습 제외</td></tr>
+<tr><td>genre_group</td><td>장르 정규화 결과</td><td>학습</td></tr>
+<tr><td>venue_type</td><td>공연장명 기준 대형/중형/소극장 매핑</td><td>학습</td></tr>
+<tr><td>is_weekend</td><td>공연시작일 기준 주말 여부</td><td>학습</td></tr>
+<tr><td>duration_days</td><td>공연종료일 - 공연시작일 + 1</td><td>학습</td></tr>
+<tr><td>organizer_type</td><td>기획 주체. 대관/기획 등</td><td>학습</td></tr>
+<tr><td>organizer</td><td>대관 기업 또는 기획 주체명</td><td>학습</td></tr>
+<tr><td>start_time</td><td>현재 원천 파일에 시간이 없어 0으로 고정한 상수 placeholder</td><td>학습 제외</td></tr>
+<tr><td>paid_audience_count</td><td>전체 유료입장객 수. 전체 예매율 산출에 직접 사용</td><td>학습 제외</td></tr>
+<tr><td>wheelchair_booking_count</td><td>휠체어석 예매 수. 타겟 산출에 직접 사용</td><td>학습 제외</td></tr>
+<tr><td>total_seats</td><td>공연장 전체 좌석 수</td><td>분석/대시보드용. 학습 제외</td></tr>
+<tr><td>general_seats</td><td>일반 판매석 수</td><td>분석/대시보드용. 학습 제외</td></tr>
+<tr><td>wheelchair_seats</td><td>장애인석 수. 휠체어석 예매율 산출의 분모</td><td>분석/대시보드용. 학습 제외</td></tr>
+<tr><td>wheelchair_seat_ratio</td><td>전체 좌석 중 휠체어석 비율</td><td>분석/대시보드용. 학습 제외</td></tr>
+<tr><td>wheelchair_booking_rate_raw</td><td>휠체어석예매수 / 장애인석. 보정 전 예매율</td><td>학습 제외</td></tr>
+<tr><td>overall_booking_rate</td><td>유료입장객수 / 총좌석수. 전체 예매율</td><td>학습 제외</td></tr>
+<tr><td>wheelchair_booking_rate</td><td>전체 예매율 대비 휠체어석 예매율. 타겟 라벨 산출값</td><td>학습 제외</td></tr>
+</table></div>
+<h3>학습에서 제외한 좌석 정보</h3>
+<p><code>booking_lead_days</code>, <code>start_time</code>은 현재 데이터에서 모든 값이 0인 상수 컬럼이라 학습 feature에서 제외한다.</p>
+<p><code>paid_audience_count</code>, <code>wheelchair_booking_count</code>, <code>total_seats</code>, <code>general_seats</code>, <code>wheelchair_seats</code>, <code>wheelchair_seat_ratio</code>, <code>wheelchair_booking_rate_raw</code>, <code>overall_booking_rate</code>, <code>wheelchair_booking_rate</code>는 접근성 등급 산출에 직접 연결되거나 좌석 수 신호가 강한 값이라 모델이 공연 특성 대신 사후 예매/좌석 정보를 보고 맞추는 문제가 생길 수 있어 제외한다.</p>
+<h3>주요 범주 분포</h3>
+<h4>장르 그룹</h4>
+<div class="table-wrap"><table>
+<tr><th>genre_group</th><th>count</th></tr>
+<tr><td>클래식</td><td>397</td></tr>
+<tr><td>오페라</td><td>21</td></tr>
+<tr><td>발레</td><td>16</td></tr>
+<tr><td>뮤지컬</td><td>15</td></tr>
+<tr><td>연극</td><td>14</td></tr>
+<tr><td>기타</td><td>9</td></tr>
+<tr><td>기타(복합)</td><td>6</td></tr>
+<tr><td>이벤트콘서트</td><td>5</td></tr>
+<tr><td>무용</td><td>2</td></tr>
+</table></div>
+<h4>공연장 규모</h4>
+<div class="table-wrap"><table>
+<tr><th>venue_type</th><th>count</th></tr>
+<tr><td>대형</td><td>277</td></tr>
+<tr><td>중형</td><td>123</td></tr>
+<tr><td>소극장</td><td>85</td></tr>
+</table></div>
+</section>
+<section class="report-section">
+<h2>Step 4. 접근성 등급 분류 모델 v4: 모델별 하이퍼파라미터 튜닝</h2>
+<h3>문제 정의</h3>
+<ul>
+<li>문제 유형: 다중 분류</li>
+<li>타겟 변수: <code>accessibility_grade</code></li>
+<li>등급: A~E</li>
+<li>주 평가 지표: macro F1</li>
+<li>보조 지표: D recall, E recall, D/E macro recall, F2 score, weighted F1</li>
+<li>정책 관점: 신규 공연의 장애인석 상대 수요 취약 등급(D/E)을 사전에 놓치지 않는 것이 중요</li>
+</ul>
+<h3>v4 변경점</h3>
+<p>v3.2까지는 모델별 기본 설정을 고정해 K-Fold 비교를 수행했다. v4에서는 RandomForest, ExtraTrees, XGBoost, LightGBM 후보별로 하이퍼파라미터 탐색 공간을 별도로 정의하고 <code>RandomizedSearchCV</code>로 각 모델의 최적 조합을 찾았다.</p>
+<h3>학습 Feature</h3>
+<div class="table-wrap"><table>
+<tr><th>feature</th></tr>
+<tr><td>genre_group</td></tr>
+<tr><td>venue_type</td></tr>
+<tr><td>is_weekend</td></tr>
+<tr><td>duration_days</td></tr>
+<tr><td>organizer_type</td></tr>
+<tr><td>organizer</td></tr>
+</table></div>
+<h3>학습 제외 컬럼</h3>
+<p>아래 컬럼은 상수값이거나 좌석 수 또는 타겟 산출에 직접 연결되는 값이므로 모델 feature에서 제외했다.</p>
+<div class="table-wrap"><table>
+<tr><th>excluded_column</th><th>reason</th></tr>
+<tr><td>booking_lead_days</td><td>상수값이라 학습 정보 없음</td></tr>
+<tr><td>start_time</td><td>상수값이라 학습 정보 없음</td></tr>
+<tr><td>paid_audience_count</td><td>좌석 수 또는 타겟 산출에 직접 연결</td></tr>
+<tr><td>wheelchair_booking_count</td><td>좌석 수 또는 타겟 산출에 직접 연결</td></tr>
+<tr><td>total_seats</td><td>좌석 수 또는 타겟 산출에 직접 연결</td></tr>
+<tr><td>general_seats</td><td>좌석 수 또는 타겟 산출에 직접 연결</td></tr>
+<tr><td>wheelchair_seats</td><td>좌석 수 또는 타겟 산출에 직접 연결</td></tr>
+<tr><td>wheelchair_seat_ratio</td><td>좌석 수 또는 타겟 산출에 직접 연결</td></tr>
+<tr><td>wheelchair_booking_rate_raw</td><td>좌석 수 또는 타겟 산출에 직접 연결</td></tr>
+<tr><td>overall_booking_rate</td><td>좌석 수 또는 타겟 산출에 직접 연결</td></tr>
+<tr><td>wheelchair_booking_rate</td><td>좌석 수 또는 타겟 산출에 직접 연결</td></tr>
+</table></div>
+<h3>등급 분포</h3>
+<div class="table-wrap"><table>
+<tr><th></th><th>count</th></tr>
+<tr><td>A</td><td>189</td></tr>
+<tr><td>B</td><td>54</td></tr>
+<tr><td>C</td><td>59</td></tr>
+<tr><td>D</td><td>119</td></tr>
+<tr><td>E</td><td>64</td></tr>
+</table></div>
+<h3>튜닝 방식</h3>
+<ul>
+<li>실행 환경: conda env <code>pronii</code></li>
+<li>탐색 방식: <code>RandomizedSearchCV</code></li>
+<li>검증 방식: stratified 5-fold cross validation</li>
+<li>n_splits: 5</li>
+<li>모델별 탐색 후보 수: 18</li>
+<li>scoring: macro F1</li>
+<li>shuffle: true</li>
+<li>random_state: 42</li>
+<li>fold별 학습 행 수: 388</li>
+<li>fold별 검증 행 수: 97</li>
+</ul>
+<h3>튜닝 후 모델 비교</h3>
+<div class="table-wrap"><table>
+<tr><th>model</th><th>status</th><th>searched</th><th>search_best_f1</th><th>cv_f1_mean</th><th>cv_f1_std</th><th>oof_f1</th><th>d_recall</th><th>e_recall</th><th>de_macro_recall</th><th>d_f2</th><th>e_f2</th><th>de_macro_f2</th><th>weighted_f1</th><th>weighted_f2</th><th>accuracy_mean</th></tr>
+<tr><td>RandomForestClassifier</td><td>completed</td><td>18</td><td>0.4962</td><td>0.4962</td><td>0.0567</td><td>0.5019</td><td>0.3277</td><td>0.5781</td><td>0.4529</td><td>0.3611</td><td>0.5854</td><td>0.4733</td><td>0.6024</td><td>0.5964</td><td>0.6062</td></tr>
+<tr><td>ExtraTreesClassifier</td><td>completed</td><td>18</td><td>0.4757</td><td>0.4757</td><td>0.0577</td><td>0.4805</td><td>0.2857</td><td>0.625</td><td>0.4554</td><td>0.3178</td><td>0.6006</td><td>0.4592</td><td>0.5864</td><td>0.5828</td><td>0.5938</td></tr>
+<tr><td>XGBoostClassifier</td><td>completed</td><td>18</td><td>0.456</td><td>0.456</td><td>0.0443</td><td>0.4628</td><td>0.7563</td><td>0.5312</td><td>0.6438</td><td>0.656</td><td>0.5449</td><td>0.6004</td><td>0.5933</td><td>0.6089</td><td>0.6289</td></tr>
+<tr><td>DummyClassifier</td><td>baseline_only</td><td>1</td><td>0.1122</td><td>0.1122</td><td>0.001</td><td>0.1122</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0.2186</td><td>0.2967</td><td>0.3897</td></tr>
+<tr><td>LightGBMClassifier</td><td>skipped</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+</table></div>
+<h3>정책 중요 지표 분석</h3>
+<p>이 프로젝트는 신규 공연의 장애인석 상대 수요 등급을 A~E로 사전 예측하는 문제다. 데이터 분포가 균형적이지 않고 D/E 같은 취약 등급을 놓치면 운영 대응 기회를 잃을 수 있으므로, 최종 판단은 accuracy보다 <code>Macro F1</code>과 D/E recall 계열 지표를 중심으로 본다.</p>
+<div class="table-wrap"><table>
+<tr><th>metric</th><th>value</th><th>interpretation</th></tr>
+<tr><td>Macro F1</td><td>0.5019</td><td>A~E 각 등급을 동일한 비중으로 평가하는 메인 지표</td></tr>
+<tr><td>D recall</td><td>0.3277</td><td>실제 D등급 공연을 D로 맞힌 비율</td></tr>
+<tr><td>E recall</td><td>0.5781</td><td>실제 E등급 공연을 E로 맞힌 비율</td></tr>
+<tr><td>D/E macro recall</td><td>0.4529</td><td>D recall과 E recall의 평균</td></tr>
+<tr><td>D/E group recall</td><td>0.5683</td><td>실제 D/E 공연을 취약 등급 범주 안으로 잡아낸 비율</td></tr>
+<tr><td>Macro F2</td><td>0.5052</td><td>recall을 precision보다 더 크게 반영한 A~E 균형 지표</td></tr>
+<tr><td>D F2</td><td>0.3611</td><td>D등급 탐지에서 recall을 더 중시한 F-beta(beta=2) 점수</td></tr>
+<tr><td>E F2</td><td>0.5854</td><td>E등급 탐지에서 recall을 더 중시한 F-beta(beta=2) 점수</td></tr>
+<tr><td>D/E macro F2</td><td>0.4733</td><td>D F2와 E F2의 평균</td></tr>
+<tr><td>Weighted F1</td><td>0.6024</td><td>실제 등급 분포를 반영한 전체 성능</td></tr>
+<tr><td>D/E misclassified cases</td><td>107</td><td>실제 D/E 중 예측 등급이 달랐던 OOF 사례 수</td></tr>
+</table></div>
+<p><code>D/E macro recall</code>은 D와 E를 각각 정확히 맞히는 능력을 요약한다. <code>D/E group recall</code>은 실제 D/E 공연이 D 또는 E 범주 안에라도 들어왔는지 보는 지표라서, 취약 공연을 우선 검토 대상으로 올리는 정책 목적에 함께 참고할 수 있다. <code>F2 score</code>는 F-beta에서 beta=2를 적용한 값으로, precision보다 recall을 더 강하게 반영한다. 따라서 취약 등급을 놓치는 비용이 큰 이 프로젝트에서는 F1보다 운영 리스크에 민감한 보조 지표로 해석한다.</p>
+<h4>D/E 탐지 관점 모델 순위</h4>
+<div class="table-wrap"><table>
+<tr><th>model</th><th>macro_f1</th><th>d_recall</th><th>e_recall</th><th>de_macro_recall</th><th>de_macro_f2</th><th>weighted_f1</th><th>weighted_f2</th></tr>
+<tr><td>XGBoostClassifier</td><td>0.4628</td><td>0.7563</td><td>0.5312</td><td>0.6438</td><td>0.6004</td><td>0.5933</td><td>0.6089</td></tr>
+<tr><td>RandomForestClassifier</td><td>0.5019</td><td>0.3277</td><td>0.5781</td><td>0.4529</td><td>0.4733</td><td>0.6024</td><td>0.5964</td></tr>
+<tr><td>ExtraTreesClassifier</td><td>0.4805</td><td>0.2857</td><td>0.625</td><td>0.4554</td><td>0.4592</td><td>0.5864</td><td>0.5828</td></tr>
+</table></div>
+<p>Macro F1 기준 최종 선택 모델은 <code>RandomForestClassifier</code>이지만, D/E 탐지력을 우선하는 운영 스크리닝 관점에서는 <code>XGBoostClassifier</code>의 D/E macro F2가 <code>0.6004</code>로 가장 높다. 따라서 리포트의 기본 최종 모델은 균형 성능 기준으로 유지하되, 취약 등급 누락 비용이 더 크다면 <code>XGBoostClassifier</code>을 보조 후보로 함께 검토하는 것이 타당하다.</p>
+<h3>모델별 최적 하이퍼파라미터</h3>
+<div class="table-wrap"><table>
+<tr><th>model</th><th>parameter</th><th>best_value</th></tr>
+<tr><td>RandomForestClassifier</td><td>n_estimators</td><td>200</td></tr>
+<tr><td>RandomForestClassifier</td><td>min_samples_leaf</td><td>1</td></tr>
+<tr><td>RandomForestClassifier</td><td>max_features</td><td></td></tr>
+<tr><td>RandomForestClassifier</td><td>max_depth</td><td>5</td></tr>
+<tr><td>ExtraTreesClassifier</td><td>n_estimators</td><td>200</td></tr>
+<tr><td>ExtraTreesClassifier</td><td>min_samples_leaf</td><td>3</td></tr>
+<tr><td>ExtraTreesClassifier</td><td>max_features</td><td>sqrt</td></tr>
+<tr><td>ExtraTreesClassifier</td><td>max_depth</td><td>8</td></tr>
+<tr><td>XGBoostClassifier</td><td>subsample</td><td>0.9</td></tr>
+<tr><td>XGBoostClassifier</td><td>reg_lambda</td><td>5</td></tr>
+<tr><td>XGBoostClassifier</td><td>n_estimators</td><td>300</td></tr>
+<tr><td>XGBoostClassifier</td><td>max_depth</td><td>3</td></tr>
+<tr><td>XGBoostClassifier</td><td>learning_rate</td><td>0.05</td></tr>
+<tr><td>XGBoostClassifier</td><td>colsample_bytree</td><td>0.75</td></tr>
+</table></div>
+<h3>미실행 모델</h3>
+<p>아래 모델은 현재 환경에서 import 단계 오류가 발생해 튜닝 대상에서 제외했다.</p>
+<div class="table-wrap"><table>
+<tr><th>model</th><th>reason</th></tr>
+<tr><td>LightGBMClassifier</td><td>AttributeError: module &#x27;pandas.core.strings&#x27; has no attribute &#x27;StringMethods&#x27;</td></tr>
+</table></div>
+<h3>최종 선택 모델</h3>
+<ul>
+<li>모델: <code>RandomForestClassifier</code></li>
+<li>선택 기준: 튜닝 완료 후보 중 fold별 macro F1 평균이 가장 높은 모델</li>
+<li>macro F1 평균: <code>0.4962</code></li>
+<li>macro F1 표준편차: <code>0.0567</code></li>
+<li>OOF macro F1: <code>0.5019</code></li>
+<li>OOF weighted F1: <code>0.6024</code></li>
+<li>OOF macro F2: <code>0.5052</code></li>
+<li>OOF weighted F2: <code>0.5964</code></li>
+<li>OOF D recall: <code>0.3277</code></li>
+<li>OOF E recall: <code>0.5781</code></li>
+<li>OOF D/E macro recall: <code>0.4529</code></li>
+<li>OOF D/E group recall: <code>0.5683</code></li>
+<li>OOF D F2: <code>0.3611</code></li>
+<li>OOF E F2: <code>0.5854</code></li>
+<li>OOF D/E macro F2: <code>0.4733</code></li>
+<li>저장 경로: <code>artifacts/accessibility_classifier_kfold_v4_hyperparamater.joblib</code></li>
+<li>메트릭 저장 경로: <code>reports/accessibility/accessibility_metrics_kfold_v4_hyperparamater.json</code></li>
+</ul>
+<h3>최종 모델 및 XGBoost Fold별 결과</h3>
+<p>아래 표는 균형 성능 기준 최종 모델인 <code>RandomForestClassifier</code>과 D/E 탐지 보조 후보인 <code>XGBoostClassifier</code>의 fold별 결과를 함께 비교한 것이다. 각 fold에서 A~E 등급별 recall과 F2를 같이 제공해 특정 등급에서 성능이 흔들리는지 확인할 수 있다.</p>
+<div class="table-wrap"><table>
+<tr><th>model</th><th>fold</th><th>train_rows</th><th>validation_rows</th><th>accuracy</th><th>f1_macro</th><th>f2_macro</th><th>f1_weighted</th><th>f2_weighted</th><th>recall_a</th><th>recall_b</th><th>recall_c</th><th>recall_d</th><th>recall_e</th><th>f2_a</th><th>f2_b</th><th>f2_c</th><th>f2_d</th><th>f2_e</th><th>de_macro_recall</th><th>de_macro_f2</th><th>de_group_recall</th></tr>
+<tr><td>RandomForestClassifier</td><td>1</td><td>388</td><td>97</td><td>0.5464</td><td>0.4152</td><td>0.413</td><td>0.5474</td><td>0.5393</td><td>0.8421</td><td>0</td><td>0.5833</td><td>0.4167</td><td>0.3077</td><td>0.8377</td><td>0</td><td>0.4321</td><td>0.4505</td><td>0.3448</td><td>0.3622</td><td>0.3976</td><td>0.4865</td></tr>
+<tr><td>RandomForestClassifier</td><td>2</td><td>388</td><td>97</td><td>0.6392</td><td>0.55</td><td>0.5619</td><td>0.6288</td><td>0.6255</td><td>0.8947</td><td>0.1818</td><td>0.7273</td><td>0.25</td><td>0.9231</td><td>0.9043</td><td>0.2174</td><td>0.5405</td><td>0.2778</td><td>0.8696</td><td>0.5865</td><td>0.5737</td><td>0.6216</td></tr>
+<tr><td>RandomForestClassifier</td><td>3</td><td>388</td><td>97</td><td>0.6186</td><td>0.5508</td><td>0.553</td><td>0.6196</td><td>0.6127</td><td>0.8378</td><td>0.2727</td><td>0.75</td><td>0.375</td><td>0.6154</td><td>0.8424</td><td>0.3</td><td>0.5921</td><td>0.4054</td><td>0.625</td><td>0.4952</td><td>0.5152</td><td>0.6486</td></tr>
+<tr><td>RandomForestClassifier</td><td>4</td><td>388</td><td>97</td><td>0.6186</td><td>0.4889</td><td>0.488</td><td>0.6098</td><td>0.6049</td><td>0.9474</td><td>0.0909</td><td>0.75</td><td>0.3913</td><td>0.3846</td><td>0.9375</td><td>0.1087</td><td>0.5488</td><td>0.4286</td><td>0.4167</td><td>0.388</td><td>0.4226</td><td>0.5</td></tr>
+<tr><td>RandomForestClassifier</td><td>5</td><td>388</td><td>97</td><td>0.6082</td><td>0.4763</td><td>0.4945</td><td>0.5877</td><td>0.5895</td><td>0.9474</td><td>0.0909</td><td>0.75</td><td>0.2083</td><td>0.6667</td><td>0.9524</td><td>0.1111</td><td>0.5556</td><td>0.2381</td><td>0.6154</td><td>0.4375</td><td>0.4267</td><td>0.5833</td></tr>
+<tr><td>XGBoostClassifier</td><td>1</td><td>388</td><td>97</td><td>0.5876</td><td>0.4084</td><td>0.4158</td><td>0.5538</td><td>0.5708</td><td>0.8684</td><td>0</td><td>0.1667</td><td>0.7083</td><td>0.3846</td><td>0.8639</td><td>0</td><td>0.1754</td><td>0.6296</td><td>0.4098</td><td>0.5465</td><td>0.5197</td><td>0.8378</td></tr>
+<tr><td>XGBoostClassifier</td><td>2</td><td>388</td><td>97</td><td>0.6598</td><td>0.4772</td><td>0.4953</td><td>0.6128</td><td>0.6359</td><td>0.8947</td><td>0.0909</td><td>0</td><td>0.75</td><td>0.8462</td><td>0.8995</td><td>0.1111</td><td>0</td><td>0.6569</td><td>0.8088</td><td>0.7981</td><td>0.7329</td><td>0.9459</td></tr>
+<tr><td>XGBoostClassifier</td><td>3</td><td>388</td><td>97</td><td>0.6392</td><td>0.5151</td><td>0.4981</td><td>0.6112</td><td>0.6173</td><td>0.8378</td><td>0.2727</td><td>0.0833</td><td>0.875</td><td>0.4615</td><td>0.8424</td><td>0.3191</td><td>0.1</td><td>0.7292</td><td>0.5</td><td>0.6683</td><td>0.6146</td><td>0.973</td></tr>
+<tr><td>XGBoostClassifier</td><td>4</td><td>388</td><td>97</td><td>0.6495</td><td>0.463</td><td>0.4596</td><td>0.6061</td><td>0.6233</td><td>0.9737</td><td>0.1818</td><td>0</td><td>0.8261</td><td>0.3846</td><td>0.9635</td><td>0.2174</td><td>0</td><td>0.6934</td><td>0.4237</td><td>0.6054</td><td>0.5586</td><td>0.9444</td></tr>
+<tr><td>XGBoostClassifier</td><td>5</td><td>388</td><td>97</td><td>0.6082</td><td>0.4163</td><td>0.4319</td><td>0.5641</td><td>0.587</td><td>0.9474</td><td>0.0909</td><td>0</td><td>0.625</td><td>0.5833</td><td>0.9375</td><td>0.1111</td><td>0</td><td>0.5639</td><td>0.5469</td><td>0.6042</td><td>0.5554</td><td>0.9444</td></tr>
+</table></div>
+<h3>A~E 등급별 OOF 세부 지표</h3>
+<p>아래 표는 전체 OOF 예측 기준으로 A~E 각 등급의 precision, recall, F1, F2, support를 정리한 것이다. <code>F2</code>는 recall을 더 중시하므로, 실제 취약 등급을 놓치는 비용이 큰 운영 판단에서 함께 확인한다.</p>
+<div class="table-wrap"><table>
+<tr><th>model</th><th>grade</th><th>precision</th><th>recall</th><th>f1</th><th>f2</th><th>support</th></tr>
+<tr><td>RandomForestClassifier</td><td>A</td><td>0.8989</td><td>0.8942</td><td>0.8966</td><td>0.8951</td><td>189</td></tr>
+<tr><td>RandomForestClassifier</td><td>B</td><td>0.4667</td><td>0.1296</td><td>0.2029</td><td>0.1515</td><td>54</td></tr>
+<tr><td>RandomForestClassifier</td><td>C</td><td>0.2658</td><td>0.7119</td><td>0.3871</td><td>0.533</td><td>59</td></tr>
+<tr><td>RandomForestClassifier</td><td>D</td><td>0.6094</td><td>0.3277</td><td>0.4262</td><td>0.3611</td><td>119</td></tr>
+<tr><td>RandomForestClassifier</td><td>E</td><td>0.6167</td><td>0.5781</td><td>0.5968</td><td>0.5854</td><td>64</td></tr>
+<tr><td>XGBoostClassifier</td><td>A</td><td>0.8906</td><td>0.9048</td><td>0.8976</td><td>0.9019</td><td>189</td></tr>
+<tr><td>XGBoostClassifier</td><td>B</td><td>0.875</td><td>0.1296</td><td>0.2258</td><td>0.1562</td><td>54</td></tr>
+<tr><td>XGBoostClassifier</td><td>C</td><td>0.1579</td><td>0.0508</td><td>0.0769</td><td>0.0588</td><td>59</td></tr>
+<tr><td>XGBoostClassifier</td><td>D</td><td>0.4286</td><td>0.7563</td><td>0.5471</td><td>0.656</td><td>119</td></tr>
+<tr><td>XGBoostClassifier</td><td>E</td><td>0.6071</td><td>0.5312</td><td>0.5667</td><td>0.5449</td><td>64</td></tr>
+</table></div>
+<h3>D/E 오분류 사례 분석</h3>
+<p>아래 표는 최종 모델의 OOF 예측 기준으로 실제 등급이 D/E였지만 예측 등급이 달랐던 사례를 요약한 것이다. <code>취약 등급 누락</code>은 실제 D/E가 A/B/C로 예측된 경우이고, <code>D/E 내부 혼동</code>은 D와 E 사이에서 서로 바뀐 경우다.</p>
+<div class="table-wrap"><table>
+<tr><th>failure_type</th><th>actual_grade</th><th>predicted_grade</th><th>count</th></tr>
+<tr><td>D/E 내부 혼동</td><td>D</td><td>E</td><td>20</td></tr>
+<tr><td>D/E 내부 혼동</td><td>E</td><td>D</td><td>8</td></tr>
+<tr><td>취약 등급 누락</td><td>D</td><td>B</td><td>1</td></tr>
+<tr><td>취약 등급 누락</td><td>D</td><td>C</td><td>59</td></tr>
+<tr><td>취약 등급 누락</td><td>E</td><td>B</td><td>1</td></tr>
+<tr><td>취약 등급 누락</td><td>E</td><td>C</td><td>18</td></tr>
+</table></div>
+<h4>D/E 오분류 사례 일부</h4>
+<p>전체 사례는 <code>reports/accessibility/accessibility_de_misclassifications_kfold_v4_hyperparamater.csv</code>에 저장했다.</p>
+<div class="table-wrap"><table>
+<tr><th>failure_type</th><th>actual_grade</th><th>predicted_grade</th><th>title</th><th>start_date</th><th>genre_group</th><th>venue</th></tr>
+<tr><td>D/E 내부 혼동</td><td>D</td><td>E</td><td>연극 &lt;돌아온다&gt;</td><td>2022-05-07</td><td>연극</td><td>CJ 토월극장</td></tr>
+<tr><td>D/E 내부 혼동</td><td>D</td><td>E</td><td>[2022 대한민국오페라페스티벌] 허왕후</td><td>2022-05-14</td><td>오페라</td><td>오페라극장</td></tr>
+<tr><td>D/E 내부 혼동</td><td>D</td><td>E</td><td>2023 예술의전당 연극 &lt;추남, 미녀&gt;</td><td>2023-04-12</td><td>연극</td><td>자유소극장</td></tr>
+<tr><td>D/E 내부 혼동</td><td>D</td><td>E</td><td>[2023 대한민국오페라페스티벌] 라 트라비아타</td><td>2023-05-19</td><td>뮤지컬</td><td>오페라극장</td></tr>
+<tr><td>D/E 내부 혼동</td><td>D</td><td>E</td><td>[2023발레축제]기획공연 발레 오디세이</td><td>2023-06-16</td><td>발레</td><td>CJ 토월극장</td></tr>
+<tr><td>D/E 내부 혼동</td><td>D</td><td>E</td><td>국립오페라단 정기공연 오페라 &lt;일 트로바토레&gt;</td><td>2023-06-22</td><td>오페라</td><td>오페라극장</td></tr>
+<tr><td>D/E 내부 혼동</td><td>D</td><td>E</td><td>뮤지컬 &lt;그날들&gt; 10주년 기념 공연</td><td>2023-07-12</td><td>뮤지컬</td><td>오페라극장</td></tr>
+<tr><td>D/E 내부 혼동</td><td>D</td><td>E</td><td>아트 서커스 &lt;두 바퀴 자전거&gt; 2023 어린이 가족 페스티벌</td><td>2023-08-11</td><td>기타(복합)</td><td>자유소극장</td></tr>
+<tr><td>D/E 내부 혼동</td><td>D</td><td>E</td><td>그레이트 오페라 시리즈 Ⅰ 라보엠 (푸치니 서거100주년 기념)</td><td>2023-11-17</td><td>오페라</td><td>오페라극장</td></tr>
+<tr><td>D/E 내부 혼동</td><td>D</td><td>E</td><td>폴리팝(두들팝ver.2)</td><td>2023-12-21</td><td>연극</td><td>자유소극장</td></tr>
+<tr><td>D/E 내부 혼동</td><td>D</td><td>E</td><td>국립현대무용단 <code>정글</code></td><td>2024-04-11</td><td>무용</td><td>CJ 토월극장</td></tr>
+<tr><td>D/E 내부 혼동</td><td>D</td><td>E</td><td>국립발레단_돈키호테</td><td>2024-06-05</td><td>발레</td><td>오페라극장</td></tr>
+</table></div>
+<h3>상위 Feature Importance</h3>
+<div class="table-wrap"><table>
+<tr><th>rank</th><th>feature</th><th>importance</th></tr>
+<tr><td>f01</td><td>cat__venue_type_대형</td><td>0.3498</td></tr>
+<tr><td>f02</td><td>num__duration_days</td><td>0.3368</td></tr>
+<tr><td>f03</td><td>cat__genre_group_기타(복합)</td><td>0.0342</td></tr>
+<tr><td>f04</td><td>cat__organizer_(주)스테이지원</td><td>0.0315</td></tr>
+<tr><td>f05</td><td>num__is_weekend</td><td>0.021</td></tr>
+<tr><td>f06</td><td>cat__organizer_콘서트디자인</td><td>0.0182</td></tr>
+<tr><td>f07</td><td>cat__organizer_국립오페라단</td><td>0.0171</td></tr>
+<tr><td>f08</td><td>cat__organizer_type_대관</td><td>0.0132</td></tr>
+<tr><td>f09</td><td>cat__venue_type_중형</td><td>0.0127</td></tr>
+<tr><td>f10</td><td>cat__organizer_크레디아뮤직앤아티스트</td><td>0.0116</td></tr>
+</table></div>
+<h3>해석상 주의</h3>
+<p>이 리포트는 작은 데이터셋에서 모델별 튜닝 효과를 빠르게 비교하기 위한 버전이다. 하이퍼파라미터 선택과 성능 추정에 같은 5-fold 구조를 사용하므로, 엄밀한 일반화 성능 추정이 필요하면 추후 nested cross validation으로 한 번 더 검증하는 것이 좋다.</p>
+<h3>산출물</h3>
+<ul>
+<li>혼동행렬: <code>reports/accessibility/accessibility_confusion_matrix_kfold_v4_hyperparamater.png</code></li>
+<li>Feature importance CSV: <code>reports/accessibility/accessibility_feature_importance_kfold_v4_hyperparamater.csv</code></li>
+<li>Feature importance 이미지: <code>reports/accessibility/accessibility_feature_importance_kfold_v4_hyperparamater.png</code></li>
+<li>D/E 오분류 사례 CSV: <code>reports/accessibility/accessibility_de_misclassifications_kfold_v4_hyperparamater.csv</code></li>
+</ul>
+</section>
+    <section class="visuals">
+      <h2>시각화 산출물</h2>
+      <div class="visual-grid">
+        <figure>
+          <figcaption>등급 분포</figcaption>
+          <img src="accessibility_label_distribution_kfold_v4_hyperparamater.png" alt="Accessibility label distribution">
+        </figure>
+        <figure>
+          <figcaption>튜닝 최종 모델 OOF 혼동행렬</figcaption>
+          <img src="accessibility_confusion_matrix_kfold_v4_hyperparamater.png" alt="Accessibility tuned model confusion matrix">
+        </figure>
+        <figure>
+          <figcaption>Feature Importance</figcaption>
+          <img src="accessibility_feature_importance_kfold_v4_hyperparamater.png" alt="Accessibility tuned model feature importance">
+        </figure>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,26 @@
+﻿feature,importance,rank
+cat__venue_type_대형,0.34979704564476743,f01
+num__duration_days,0.33681465839524705,f02
+cat__genre_group_기타(복합),0.034184289670323297,f03
+cat__organizer_(주)스테이지원,0.03152133343012679,f04
+num__is_weekend,0.021049404849787106,f05
+cat__organizer_콘서트디자인,0.018168642330775732,f06
+cat__organizer_국립오페라단,0.017100805480233332,f07
+cat__organizer_type_대관,0.013158887527505513,f08
+cat__venue_type_중형,0.012699844493096473,f09
+cat__organizer_크레디아뮤직앤아티스트,0.011563811707497467,f10
+cat__organizer_예술의전당,0.010151065003606408,f11
+cat__organizer_(주)스톰프뮤직,0.00974344061969174,f12
+cat__organizer_infrequent_sklearn,0.009650581284978926,f13
+cat__organizer_type_기획,0.007645990316082048,f14
+cat__organizer_주식회사 목프로덕션,0.007292717406419782,f15
+cat__genre_group_오페라,0.007166056979254633,f16
+cat__organizer_(사)밀레니엄심포니오케스트라,0.006968583402335854,f17
+cat__organizer_오페라팩토리,0.005824853831701414,f18
+cat__organizer_(주)마스트미디어,0.005123775049579929,f19
+cat__organizer_투픽스,0.005030195396037884,f20
+cat__genre_group_클래식,0.004532217232032226,f21
+cat__venue_type_소극장,0.004367966780542242,f22
+cat__genre_group_연극,0.004302915810033423,f23
+cat__organizer_(재)국립합창단,0.0037261983170806734,f24
+cat__organizer_(주)씨제이이엔엠,0.0035764859680057944,f25
