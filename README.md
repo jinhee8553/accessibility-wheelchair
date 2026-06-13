@@ -40,7 +40,7 @@ Git에 직접 포함하지 않습니다.
 
 실험은 단일 train/test baseline에서 시작해 Stratified K-Fold 검증, feature 정제, Randomized Search 기반 튜닝, 등급 거리 기반 오차 분석, 앙상블 비교, Frank & Hall 방식 순서형 분류 모델까지 확장했습니다. 상세한 실험별 지표와 의사결정 흐름은 `reports/accessibility/`의 metrics/HTML 리포트와 `mlruns/`에서 확인합니다.
 
-현재 API는 `artifacts/accessibility_classifier_ordinal.joblib`를 최우선으로 사용합니다.
+현재 API는 `artifacts/accessibility_classifier_ordinal.joblib`를 우선 사용합니다.
 
 주요 재실행 스크립트:
 
@@ -79,7 +79,3 @@ curl -X POST http://localhost:8000/predict \
     "organizer": "(재)서울시립교향악단"
   }'
 ```
-
-## Notes
-
-Run 산출물은 순차 커밋으로 보존되어 있으며, README에서는 개별 Run을 반복 설명하지 않습니다. 실험별 세부 비교는 리포트 파일과 MLflow 로그를 기준으로 확인합니다.
