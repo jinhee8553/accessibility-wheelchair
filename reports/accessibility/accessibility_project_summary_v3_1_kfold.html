@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>장애인 접근성 등급 진단 모델 구현 결과 v3.1 - K-Fold</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 40px; line-height: 1.6; color: #222; }
+    h1, h2, h3 { color: #17324d; }
+    table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 14px; }
+    th, td { border: 1px solid #d7dde5; padding: 8px 10px; text-align: left; vertical-align: top; }
+    th { background: #eef3f8; }
+    code { background: #f3f5f7; padding: 2px 4px; border-radius: 4px; }
+    .summary { background: #f7fafc; border-left: 4px solid #805ad5; padding: 16px 20px; margin-bottom: 28px; }
+    .scale-definition { background: #fbfcfd; border: 1px solid #d7dde5; padding: 18px 20px; margin: 0 0 28px; }
+    img { max-width: 760px; width: 100%; border: 1px solid #d7dde5; margin: 12px 0 24px; }
+  </style>
+</head>
+<body>
+  <div class="summary">
+    <h1>장애인 접근성 등급 진단 모델 구현 결과 v3.1</h1>
+    <p>생성 시각: 2026-06-13T10:01:54.415595+09:00</p>
+    <p>실행 환경: <strong>conda env pronii</strong></p>
+    <p>검증 방식: <strong>Stratified 5-Fold Cross Validation</strong></p>
+    <p>최종 모델: <strong>ExtraTreesClassifier</strong> / macro F1 평균: <strong>0.4733</strong> / 표준편차: <strong>0.0551</strong> / OOF macro F1: <strong>0.4780</strong></p>
+    <p>v3.1 핵심 변경점: `pronii` 환경에서 XGBoost와 LightGBM까지 포함해 5-fold 검증을 다시 수행했다.</p>
+  </div>
+  <section class="scale-definition">
+    <h1>v3.1 핵심 기준. 공연장 규모 분류</h1>
+<p>`venue_type`은 공연장명을 기준으로 확정한 규모 라벨이다. K-fold 모델에서도 이 값을 범주형 feature로 사용한다.</p>
+<table>
+<tr><th>규모 라벨</th><th>공연장</th><th>행 수</th></tr>
+<tr><td>대형</td><td>CJ 토월극장 (21건), 오페라극장 (40건), 콘서트홀 (216건)</td><td>277</td></tr>
+<tr><td>중형</td><td>IBK기업은행챔버홀 (1건), 리사이틀홀 (122건)</td><td>123</td></tr>
+<tr><td>소극장/소형</td><td>인춘아트홀 (70건), 자유소극장 (15건)</td><td>85</td></tr>
+</table>
+  </section>
+  <h1>Step 1. 데이터셋 기준 확정</h1>
+<h2>입력 파일</h2>
+<ul>
+<li>원본: `data/raw/ap_whellchair_hall_total.csv`</li>
+<li>전처리 결과: `data/processed/accessibility_dataset.csv`</li>
+</ul>
+<h2>데이터 크기</h2>
+<table>
+<tr><th>항목</th><th>값</th></tr>
+<tr><td>원본 행 수</td><td>500</td></tr>
+<tr><td>전처리 후 행 수</td><td>485</td></tr>
+<tr><td>전처리 후 컬럼 수</td><td>26</td></tr>
+</table>
+<h2>제외 행 요약</h2>
+<ul>
+<li>제외 행 수: `15`행</li>
+<li>제외 이유: 새 metric의 분모인 `overall_booking_rate = paid_audience_count / total_seats`가 0이 되면 `wheelchair_booking_rate = wheelchair_booking_rate_raw / overall_booking_rate`를 정의할 수 없다.</li>
+<li>이번 데이터에서 제외된 15개 행은 모두 `paid_audience_count &lt;= 0`, 즉 `유료입장객수 = 0`인 공연이다.</li>
+</ul>
+<h3>제외 사유별 건수</h3>
+<table>
+<tr><th>제외 사유</th><th>count</th></tr>
+<tr><td>paid_audience_count &lt;= 0</td><td>15</td></tr>
+</table>
+<h3>제외된 공연 목록</h3>
+<table>
+<tr><th>raw_index</th><th>title</th><th>start_date</th><th>venue</th><th>genre</th><th>paid_audience_count</th><th>wheelchair_booking_count</th><th>total_seats</th><th>wheelchair_seats</th><th>제외 사유</th></tr>
+<tr><td>10</td><td>2023 대원문화재단 신년음악회</td><td>2023-01-07</td><td>콘서트홀</td><td>교향곡</td><td>0</td><td>25</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>31</td><td>2024 IBK음악회</td><td>2024-10-16</td><td>콘서트홀</td><td>클래식</td><td>0</td><td>24</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>40</td><td>2024 서울시향 크리스티안 테츨라프의 브람스 바이올린 협주곡 ①</td><td>2024-09-05</td><td>콘서트홀</td><td>교향곡</td><td>0</td><td>4</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>42</td><td>2024 신년음악회</td><td>2024-01-09</td><td>콘서트홀</td><td>클래식</td><td>0</td><td>20</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>50</td><td>2024 예술의전당 회원음악회</td><td>2024-09-07</td><td>콘서트홀</td><td>클래식</td><td>0</td><td>1</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>51</td><td>2024 장애인식개선을 위한 하트 투 하트 콘서트</td><td>2024-11-19</td><td>콘서트홀</td><td>클래식</td><td>0</td><td>48</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>60</td><td>IBK 음악회  with 조수미 &amp; 서혜경 월드 클래식</td><td>2023-09-08</td><td>콘서트홀</td><td>크로스오버</td><td>0</td><td>24</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>217</td><td>못 말리는 프랑켄슈타인</td><td>2024-04-24</td><td>CJ 토월극장</td><td>연극</td><td>0</td><td>20</td><td>1004</td><td>10</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>264</td><td>서강은 피아노 독주회</td><td>2023-11-10</td><td>인춘아트홀</td><td>독주</td><td>0</td><td>2</td><td>100</td><td>2</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>270</td><td>소프라노 노정애 독창회</td><td>2024-04-12</td><td>인춘아트홀</td><td>클래식</td><td>0</td><td>2</td><td>100</td><td>2</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>378</td><td>장애인식개선을 위한 &lt;하트 투 하트 콘서트&gt;</td><td>2023-08-29</td><td>콘서트홀</td><td>클래식</td><td>0</td><td>24</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>392</td><td>제14회ARKO한국창작음악제(양악부문)</td><td>2023-02-01</td><td>콘서트홀</td><td>교향곡</td><td>0</td><td>4</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>393</td><td>제15회ARKO한국창작음악제(양악부문)</td><td>2024-02-06</td><td>콘서트홀</td><td>교향곡</td><td>0</td><td>8</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>399</td><td>조성진 삼성호암상 수상기념 리사이틀</td><td>2024-06-18</td><td>콘서트홀</td><td>클래식</td><td>0</td><td>24</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+<tr><td>467</td><td>한국예술종합학교 음악원 개원30주년 기념음악회</td><td>2023-04-12</td><td>콘서트홀</td><td>교향곡</td><td>0</td><td>48</td><td>2505</td><td>24</td><td>paid_audience_count &lt;= 0</td></tr>
+</table>
+<h2>사용 원천 컬럼</h2>
+<ul>
+<li>공연 정보: `제목`, `공연시작일`, `공연종료일`, `장르`, `구분`, `공연장`, `대관 기업명`</li>
+<li>좌석/예매 정보: `유료입장객수`, `휠체어석예매수`, `total/총좌석수`, `일반석`, `장애인석`</li>
+</ul>
+<h2>전처리 수행 내용</h2>
+<table>
+<tr><th>전처리 항목</th><th>내용</th></tr>
+<tr><td>컬럼 표준화</td><td>`제목`, `공연시작일`, `공연종료일`, `집계최초일자`, `장르`, `구분`, `공연장`, `대관 기업명`, `유료입장객수`, `휠체어석예매수`, `총좌석수`, `일반석`, `장애인석`을 영문 컬럼명으로 변경</td></tr>
+<tr><td>타입 변환</td><td>`start_date`, `end_date`, `first_booking_date`는 날짜형으로 변환하고, 좌석/예매 수 컬럼은 숫자형으로 변환</td></tr>
+<tr><td>유효 행 필터링</td><td>날짜, 유료입장객수, 휠체어석예매수, 총좌석수, 장애인석이 결측인 행을 제외하고 `wheelchair_seats &gt; 0`, `total_seats &gt; 0`, `paid_audience_count &gt; 0` 조건만 유지</td></tr>
+<tr><td>텍스트 정리</td><td>`genre`, `organizer_type`, `organizer`, `venue`의 결측/빈 문자열을 `unknown`으로 채우고 앞뒤 공백 제거</td></tr>
+<tr><td>범주 매핑</td><td>세부 장르를 `genre_group`으로 정규화하고, 공연장명을 기준으로 `venue_type`을 대형/중형/소극장/기타로 매핑</td></tr>
+<tr><td>날짜 파생변수</td><td>`year`, `month`, `day_of_week`, `is_weekend`, `duration_days`, `booking_lead_days` 생성</td></tr>
+<tr><td>예매율 파생변수</td><td>`wheelchair_booking_rate_raw = wheelchair_booking_count / wheelchair_seats`, `overall_booking_rate = paid_audience_count / total_seats`, `wheelchair_booking_rate = wheelchair_booking_rate_raw / overall_booking_rate` 생성</td></tr>
+<tr><td>좌석 비율 파생변수</td><td>`wheelchair_seat_ratio = wheelchair_seats / total_seats` 생성</td></tr>
+<tr><td>타겟 라벨링</td><td>보정 예매율 `wheelchair_booking_rate`를 A~E 구간으로 나누어 `accessibility_grade` 생성</td></tr>
+<tr><td>출력 정렬</td><td>`start_date`, `title` 기준으로 정렬한 뒤 `data/processed/accessibility_dataset.csv`로 저장</td></tr>
+</table>
+<h2>결측치 점검</h2>
+<table>
+<tr><th>column</th><th>missing</th></tr>
+<tr><td>title</td><td>0</td></tr>
+<tr><td>start_date</td><td>0</td></tr>
+<tr><td>end_date</td><td>0</td></tr>
+<tr><td>year</td><td>0</td></tr>
+<tr><td>month</td><td>0</td></tr>
+<tr><td>day_of_week</td><td>0</td></tr>
+<tr><td>is_weekend</td><td>0</td></tr>
+<tr><td>duration_days</td><td>0</td></tr>
+<tr><td>booking_lead_days</td><td>0</td></tr>
+<tr><td>genre</td><td>0</td></tr>
+<tr><td>genre_group</td><td>0</td></tr>
+<tr><td>venue</td><td>0</td></tr>
+<tr><td>venue_type</td><td>0</td></tr>
+<tr><td>organizer_type</td><td>0</td></tr>
+<tr><td>organizer</td><td>0</td></tr>
+<tr><td>start_time</td><td>0</td></tr>
+<tr><td>paid_audience_count</td><td>0</td></tr>
+<tr><td>wheelchair_booking_count</td><td>0</td></tr>
+<tr><td>total_seats</td><td>0</td></tr>
+<tr><td>general_seats</td><td>0</td></tr>
+<tr><td>wheelchair_seats</td><td>0</td></tr>
+<tr><td>wheelchair_seat_ratio</td><td>0</td></tr>
+<tr><td>wheelchair_booking_rate_raw</td><td>0</td></tr>
+<tr><td>overall_booking_rate</td><td>0</td></tr>
+<tr><td>wheelchair_booking_rate</td><td>0</td></tr>
+<tr><td>accessibility_grade</td><td>0</td></tr>
+</table>
+<hr>
+<h1>Step 2. 타겟 라벨 설계</h1>
+<h2>타겟 변수</h2>
+<ul>
+<li>타겟: `accessibility_grade`</li>
+<li>기준값: `wheelchair_booking_rate = (wheelchair_booking_count / wheelchair_seats) / (paid_audience_count / total_seats)`</li>
+<li>해석: 전체 예매율 대비 휠체어석 예매율. `1.0`이면 전체 좌석 예매율과 휠체어석 예매율이 같은 수준이다.</li>
+</ul>
+<h2>등급 기준</h2>
+<table>
+<tr><th>등급</th><th>기준</th></tr>
+<tr><td>A</td><td>`wheelchair_booking_rate &gt;= 1.00`</td></tr>
+<tr><td>B</td><td>`0.50 &lt;= wheelchair_booking_rate &lt; 1.00`</td></tr>
+<tr><td>C</td><td>`0.25 &lt;= wheelchair_booking_rate &lt; 0.50`</td></tr>
+<tr><td>D</td><td>`0.10 &lt;= wheelchair_booking_rate &lt; 0.25`</td></tr>
+<tr><td>E</td><td>`wheelchair_booking_rate &lt; 0.10`</td></tr>
+</table>
+<p>기존 `wheelchair_booking_count / wheelchair_seats` 방식은 장기 공연에서 공연 회차/기간 효과가 크게 반영되어 값이 과도하게 커질 수 있었다.</p>
+<p>따라서 전체 예매율로 한 번 더 나눈 상대 예매율을 기준으로 라벨링했다.</p>
+<h2>등급별 샘플 수</h2>
+<table>
+<tr><th>accessibility_grade</th><th>count</th></tr>
+<tr><td>A</td><td>189</td></tr>
+<tr><td>B</td><td>54</td></tr>
+<tr><td>C</td><td>59</td></tr>
+<tr><td>D</td><td>119</td></tr>
+<tr><td>E</td><td>64</td></tr>
+</table>
+<h2>예매율 요약</h2>
+<table>
+<tr><th></th><th>value</th></tr>
+<tr><td>count</td><td>485.0</td></tr>
+<tr><td>mean</td><td>1.8491404516428849</td></tr>
+<tr><td>std</td><td>5.7195291368038</td></tr>
+<tr><td>min</td><td>0.010128773749074131</td></tr>
+<tr><td>25%</td><td>0.15654145995747698</td></tr>
+<tr><td>50%</td><td>0.5034973468403281</td></tr>
+<tr><td>75%</td><td>2.058139534883721</td></tr>
+<tr><td>max</td><td>104.375</td></tr>
+</table>
+<hr>
+<h1>Step 3. Feature Engineering</h1>
+<h2>Feature 목록</h2>
+<table>
+<tr><th>feature</th><th>설명</th><th>사용</th></tr>
+<tr><td>booking_lead_days</td><td>공연시작일 - 집계최초일자. 현재 데이터에서는 전체 값이 0인 상수 컬럼</td><td>학습 제외</td></tr>
+<tr><td>genre_group</td><td>장르 정규화 결과</td><td>학습</td></tr>
+<tr><td>venue_type</td><td>공연장명 기준 대형/중형/소극장 매핑</td><td>학습</td></tr>
+<tr><td>is_weekend</td><td>공연시작일 기준 주말 여부</td><td>학습</td></tr>
+<tr><td>duration_days</td><td>공연종료일 - 공연시작일 + 1</td><td>학습</td></tr>
+<tr><td>organizer_type</td><td>기획 주체. 대관/기획 등</td><td>학습</td></tr>
+<tr><td>organizer</td><td>대관 기업 또는 기획 주체명</td><td>학습</td></tr>
+<tr><td>start_time</td><td>현재 원천 파일에 시간이 없어 0으로 고정한 상수 placeholder</td><td>학습 제외</td></tr>
+<tr><td>paid_audience_count</td><td>전체 유료입장객 수. 전체 예매율 산출에 직접 사용</td><td>학습 제외</td></tr>
+<tr><td>wheelchair_booking_count</td><td>휠체어석 예매 수. 타겟 산출에 직접 사용</td><td>학습 제외</td></tr>
+<tr><td>total_seats</td><td>공연장 전체 좌석 수</td><td>분석/대시보드용. 학습 제외</td></tr>
+<tr><td>general_seats</td><td>일반 판매석 수</td><td>분석/대시보드용. 학습 제외</td></tr>
+<tr><td>wheelchair_seats</td><td>장애인석 수. 휠체어석 예매율 산출의 분모</td><td>분석/대시보드용. 학습 제외</td></tr>
+<tr><td>wheelchair_seat_ratio</td><td>전체 좌석 중 휠체어석 비율</td><td>분석/대시보드용. 학습 제외</td></tr>
+<tr><td>wheelchair_booking_rate_raw</td><td>휠체어석예매수 / 장애인석. 보정 전 예매율</td><td>학습 제외</td></tr>
+<tr><td>overall_booking_rate</td><td>유료입장객수 / 총좌석수. 전체 예매율</td><td>학습 제외</td></tr>
+<tr><td>wheelchair_booking_rate</td><td>전체 예매율 대비 휠체어석 예매율. 타겟 라벨 산출값</td><td>학습 제외</td></tr>
+</table>
+<h2>학습에서 제외한 좌석 정보</h2>
+<p>`booking_lead_days`, `start_time`은 현재 데이터에서 모든 값이 0인 상수 컬럼이라 학습 feature에서 제외한다.</p>
+<p>`paid_audience_count`, `wheelchair_booking_count`, `total_seats`, `general_seats`, `wheelchair_seats`, `wheelchair_seat_ratio`, `wheelchair_booking_rate_raw`, `overall_booking_rate`, `wheelchair_booking_rate`는 접근성 등급 산출에 직접 연결되거나 좌석 수 신호가 강한 값이라 모델이 공연 특성 대신 사후 예매/좌석 정보를 보고 맞추는 문제가 생길 수 있어 제외한다.</p>
+<h2>주요 범주 분포</h2>
+<h3>장르 그룹</h3>
+<table>
+<tr><th>genre_group</th><th>count</th></tr>
+<tr><td>클래식</td><td>397</td></tr>
+<tr><td>오페라</td><td>21</td></tr>
+<tr><td>발레</td><td>16</td></tr>
+<tr><td>뮤지컬</td><td>15</td></tr>
+<tr><td>연극</td><td>14</td></tr>
+<tr><td>기타</td><td>9</td></tr>
+<tr><td>기타(복합)</td><td>6</td></tr>
+<tr><td>이벤트콘서트</td><td>5</td></tr>
+<tr><td>무용</td><td>2</td></tr>
+</table>
+<h3>공연장 규모</h3>
+<table>
+<tr><th>venue_type</th><th>count</th></tr>
+<tr><td>대형</td><td>277</td></tr>
+<tr><td>중형</td><td>123</td></tr>
+<tr><td>소극장</td><td>85</td></tr>
+</table>
+<hr>
+<h1>Step 4. 접근성 등급 분류 모델 v3.1: K-Fold 검증</h1>
+<h2>문제 정의</h2>
+<ul>
+<li>문제 유형: 다중 분류</li>
+<li>타겟 변수: `accessibility_grade`</li>
+<li>등급: A~E</li>
+<li>주 평가 지표: macro F1</li>
+</ul>
+<h2>K-Fold 적용 이유</h2>
+<p>전체 데이터가 500행으로 많지 않기 때문에 단일 train/test split만 사용하면 특정 검증 세트 구성에 결과가 흔들릴 수 있다. v3.1에서는 `pronii` conda 환경에서 `StratifiedKFold(n_splits=5)`를 적용했고, XGBoost와 LightGBM 후보까지 포함했다.</p>
+<h2>학습 Feature</h2>
+<table>
+<tr><th>feature</th></tr>
+<tr><td>genre_group</td></tr>
+<tr><td>venue_type</td></tr>
+<tr><td>is_weekend</td></tr>
+<tr><td>duration_days</td></tr>
+<tr><td>organizer_type</td></tr>
+<tr><td>organizer</td></tr>
+</table>
+<h2>학습 제외 컬럼</h2>
+<p>아래 컬럼은 좌석 수 또는 타겟 산출에 직접 연결되는 값이므로 모델 feature에서 제외했다.</p>
+<table>
+<tr><th>excluded_column</th></tr>
+<tr><td>paid_audience_count</td></tr>
+<tr><td>wheelchair_booking_count</td></tr>
+<tr><td>total_seats</td></tr>
+<tr><td>general_seats</td></tr>
+<tr><td>wheelchair_seats</td></tr>
+<tr><td>wheelchair_seat_ratio</td></tr>
+<tr><td>wheelchair_booking_rate_raw</td></tr>
+<tr><td>overall_booking_rate</td></tr>
+<tr><td>wheelchair_booking_rate</td></tr>
+</table>
+<h2>등급 분포</h2>
+<table>
+<tr><th></th><th>count</th></tr>
+<tr><td>A</td><td>189</td></tr>
+<tr><td>B</td><td>54</td></tr>
+<tr><td>C</td><td>59</td></tr>
+<tr><td>D</td><td>119</td></tr>
+<tr><td>E</td><td>64</td></tr>
+</table>
+<h2>검증 방식</h2>
+<ul>
+<li>실행 환경: conda env `pronii`</li>
+<li>방식: stratified 5-fold cross validation</li>
+<li>n_splits: 5</li>
+<li>shuffle: true</li>
+<li>random_state: 42</li>
+<li>fold별 학습 행 수: 400</li>
+<li>fold별 검증 행 수: 100</li>
+</ul>
+<h2>모델 비교</h2>
+<table>
+<tr><th>model</th><th>accuracy_mean</th><th>accuracy_std</th><th>f1_macro_mean</th><th>f1_macro_std</th><th>oof_f1_macro</th></tr>
+<tr><td>ExtraTreesClassifier</td><td>0.5918</td><td>0.0383</td><td>0.4733</td><td>0.0551</td><td>0.478</td></tr>
+<tr><td>XGBoostClassifier</td><td>0.6289</td><td>0.0326</td><td>0.4532</td><td>0.0419</td><td>0.4608</td></tr>
+<tr><td>RandomForestClassifier</td><td>0.5794</td><td>0.0329</td><td>0.4444</td><td>0.0469</td><td>0.4471</td></tr>
+<tr><td>DummyClassifier</td><td>0.3897</td><td>0.0046</td><td>0.1122</td><td>0.001</td><td>0.1122</td></tr>
+</table>
+<h2>최종 선택 모델</h2>
+<ul>
+<li>모델: `ExtraTreesClassifier`</li>
+<li>선택 기준: fold별 macro F1 평균이 가장 높은 후보</li>
+<li>macro F1 평균: `0.4733`</li>
+<li>macro F1 표준편차: `0.0551`</li>
+<li>OOF macro F1: `0.4780`</li>
+<li>저장 경로: `artifacts/accessibility_classifier_kfold_v31.joblib`</li>
+<li>메트릭 저장 경로: `reports/accessibility/accessibility_metrics_kfold_v31.json`</li>
+</ul>
+<h2>최종 모델 Fold별 결과</h2>
+<table>
+<tr><th>fold</th><th>train_rows</th><th>validation_rows</th><th>accuracy</th><th>f1_macro</th></tr>
+<tr><td>1.0</td><td>388.0</td><td>97.0</td><td>0.5361</td><td>0.3937</td></tr>
+<tr><td>2.0</td><td>388.0</td><td>97.0</td><td>0.6082</td><td>0.4928</td></tr>
+<tr><td>3.0</td><td>388.0</td><td>97.0</td><td>0.5979</td><td>0.5178</td></tr>
+<tr><td>4.0</td><td>388.0</td><td>97.0</td><td>0.6392</td><td>0.5219</td></tr>
+<tr><td>5.0</td><td>388.0</td><td>97.0</td><td>0.5773</td><td>0.4405</td></tr>
+</table>
+<h2>상위 Feature Importance</h2>
+<table>
+<tr><th>rank</th><th>feature</th><th>importance</th></tr>
+<tr><td>f01</td><td>cat__venue_type_대형</td><td>0.24028373914024417</td></tr>
+<tr><td>f02</td><td>cat__venue_type_중형</td><td>0.14713587963034785</td></tr>
+<tr><td>f03</td><td>cat__genre_group_클래식</td><td>0.1232469065645181</td></tr>
+<tr><td>f04</td><td>cat__venue_type_소극장</td><td>0.0665435521902061</td></tr>
+<tr><td>f05</td><td>num__duration_days</td><td>0.04641221057663546</td></tr>
+<tr><td>f06</td><td>cat__genre_group_발레</td><td>0.04143790522559384</td></tr>
+<tr><td>f07</td><td>cat__genre_group_연극</td><td>0.03106934593904928</td></tr>
+<tr><td>f08</td><td>cat__organizer_지클레프</td><td>0.024260198616322524</td></tr>
+<tr><td>f09</td><td>cat__genre_group_뮤지컬</td><td>0.02393193139186061</td></tr>
+<tr><td>f10</td><td>cat__organizer_예인예술기획</td><td>0.022530763444511645</td></tr>
+</table>
+<h2>산출물</h2>
+<ul>
+<li>혼동행렬: `reports/accessibility/accessibility_confusion_matrix_kfold_v31.png`</li>
+<li>Feature importance CSV: `reports/accessibility/accessibility_feature_importance_kfold_v31.csv`</li>
+<li>Feature importance 이미지: `reports/accessibility/accessibility_feature_importance_kfold_v31.png`</li>
+</ul>
+  <h2>시각화 산출물</h2>
+  <h3>등급 분포</h3>
+  <img src="accessibility_label_distribution_kfold_v31.png" alt="Accessibility label distribution">
+  <h3>K-Fold OOF 혼동행렬</h3>
+  <img src="accessibility_confusion_matrix_kfold_v31.png" alt="Accessibility k-fold confusion matrix">
+  <h3>Feature Importance</h3>
+  <img src="accessibility_feature_importance_kfold_v31.png" alt="Accessibility k-fold feature importance">
+</body>
+</html>
