@@ -1,0 +1,3 @@
+﻿model,row_index,actual_grade,predicted_grade,actual_score,predicted_score,signed_error,abs_error,is_adjacent_or_exact,is_exact,is_severe_error,title,start_date,genre_group,venue,venue_type,organizer
+RandomForestClassifier,436,E,B,5,2,-3,3,0,0,1,손민수 피아노 리사이틀 -바흐 골드베르크 변주곡,2024-10-13,클래식,콘서트홀,대형,주식회사 목프로덕션
+RandomForestClassifier,369,D,B,4,2,-2,2,0,0,1,유키 구라모토 내한 25주년 기념 콘서트,2024-06-07,클래식,콘서트홀,대형,크레디아뮤직앤아티스트

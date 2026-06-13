@@ -1,0 +1,77 @@
+{
+  "created_at": "2026-06-13T10:05:35.886873+09:00",
+  "source_metrics_path": "reports/accessibility/accessibility_metrics_kfold_v4_hyperparamater.json",
+  "dataset_path": "data/processed/accessibility_dataset.csv",
+  "grade_mapping": {
+    "A": 1,
+    "B": 2,
+    "C": 3,
+    "D": 4,
+    "E": 5
+  },
+  "unavailable_models": {
+    "LightGBMClassifier": "AttributeError: module 'pandas.core.strings' has no attribute 'StringMethods'"
+  },
+  "models": {
+    "RandomForestClassifier": {
+      "grade_mae": 0.4948453608247423,
+      "adjacent_accuracy": 0.9010309278350516,
+      "exact_accuracy": 0.6061855670103092,
+      "mean_signed_error": -0.04536082474226804,
+      "severe_error_count": 2,
+      "vulnerable_support": 183,
+      "severe_error_rate": 0.01092896174863388,
+      "distance_distribution": {
+        "0": 294,
+        "1": 143,
+        "2": 47,
+        "3": 1
+      },
+      "macro_f1": 0.5019101501602451,
+      "de_macro_f2": 0.47327707454289736,
+      "de_macro_recall": 0.45292804621848737
+    },
+    "ExtraTreesClassifier": {
+      "grade_mae": 0.5360824742268041,
+      "adjacent_accuracy": 0.8804123711340206,
+      "exact_accuracy": 0.5938144329896907,
+      "mean_signed_error": 0.032989690721649485,
+      "severe_error_count": 0,
+      "vulnerable_support": 183,
+      "severe_error_rate": 0.0,
+      "distance_distribution": {
+        "0": 288,
+        "1": 139,
+        "2": 53,
+        "3": 5
+      },
+      "macro_f1": 0.4804709109343655,
+      "de_macro_f2": 0.4591788049731975,
+      "de_macro_recall": 0.45535714285714285
+    },
+    "XGBoostClassifier": {
+      "grade_mae": 0.5051546391752577,
+      "adjacent_accuracy": 0.8989690721649485,
+      "exact_accuracy": 0.6288659793814433,
+      "mean_signed_error": 0.23711340206185566,
+      "severe_error_count": 0,
+      "vulnerable_support": 183,
+      "severe_error_rate": 0.0,
+      "distance_distribution": {
+        "0": 305,
+        "1": 131,
+        "2": 33,
+        "3": 16
+      },
+      "macro_f1": 0.4628292904968633,
+      "de_macro_f2": 0.6004242356283173,
+      "de_macro_recall": 0.6437762605042017
+    }
+  },
+  "best_by_macro_f1": "RandomForestClassifier",
+  "best_by_grade_mae": "RandomForestClassifier",
+  "best_by_adjacent_accuracy": "RandomForestClassifier",
+  "best_by_severe_error_rate": "XGBoostClassifier",
+  "oof_predictions_path": "reports/accessibility/accessibility_ordinal_oof_predictions_v4_2_grade.csv",
+  "severe_errors_path": "reports/accessibility/accessibility_ordinal_severe_errors_v4_2_grade.csv"
+}

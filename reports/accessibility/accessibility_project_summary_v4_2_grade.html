@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>장애인 접근성 등급 진단 모델 v4.2_grade - 순서형 평가</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1d2733;
+      --muted: #657386;
+      --line: #d9e1ea;
+      --soft: #f6f8fb;
+      --panel: #ffffff;
+      --accent: #2f6f9f;
+      --accent-2: #7a6b2f;
+      --code: #eef2f6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #eef2f6;
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.62;
+    }
+    .page { max-width: 1180px; margin: 0 auto; padding: 40px 28px 56px; }
+    .hero {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-top: 5px solid var(--accent);
+      padding: 30px 32px;
+      margin-bottom: 18px;
+    }
+    .eyebrow { margin: 0 0 8px; color: var(--accent); font-size: 13px; font-weight: 700; }
+    h1, h2, h3, h4 { color: #17324d; line-height: 1.28; }
+    h1 { margin: 0 0 12px; font-size: 30px; }
+    h2 { margin: 0 0 18px; font-size: 23px; }
+    h3 { margin: 26px 0 10px; font-size: 18px; }
+    h4 { margin: 20px 0 8px; font-size: 15px; color: var(--muted); }
+    p { margin: 8px 0; }
+    .summary-text { max-width: 900px; margin: 0; color: var(--muted); font-size: 15px; }
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 22px;
+    }
+    .metric { border: 1px solid var(--line); background: var(--soft); padding: 14px 16px; min-height: 86px; }
+    .metric span { display: block; color: var(--muted); font-size: 12px; font-weight: 700; }
+    .metric strong { display: block; margin-top: 7px; font-size: 21px; color: var(--ink); word-break: break-word; }
+    .note, .report-section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      padding: 26px 30px;
+      margin: 18px 0;
+    }
+    .note { border-left: 5px solid var(--accent-2); background: #fbfaf3; }
+    .table-wrap { width: 100%; overflow-x: auto; margin: 14px 0 20px; border: 1px solid var(--line); }
+    table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14px; background: #fff; }
+    th, td { border-bottom: 1px solid var(--line); padding: 9px 11px; text-align: left; vertical-align: top; }
+    tr:last-child td { border-bottom: 0; }
+    th { background: #f1f5f9; color: #2d3d50; font-weight: 700; white-space: nowrap; }
+    code { background: var(--code); padding: 2px 5px; border-radius: 4px; }
+    @media (max-width: 860px) {
+      .page { padding: 22px 14px 36px; }
+      .hero, .note, .report-section { padding: 20px; }
+      .metric-grid { grid-template-columns: 1fr; }
+      h1 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="hero">
+      <p class="eyebrow">Accessibility Model Report v4.2_grade</p>
+      <h1>장애인 접근성 등급 진단 모델 순서형 평가</h1>
+      <p class="summary-text">A~E 등급의 순서를 반영해 평균 등급 오차, 인접 등급 허용 정확도, 심각 오류율을 추가 분석했다.</p>
+      <div class="metric-grid">
+        <div class="metric"><span>Grade MAE 최저</span><strong>RandomForestClassifier (0.4948)</strong></div>
+        <div class="metric"><span>Adjacent Accuracy 최고</span><strong>RandomForestClassifier (0.9010)</strong></div>
+        <div class="metric"><span>Severe Error Rate 최저</span><strong>XGBoostClassifier (0.0000)</strong></div>
+        <div class="metric"><span>기존 Macro F1 최종</span><strong>RandomForestClassifier</strong></div>
+      </div>
+    </header>
+    <section class="note">
+      <strong>핵심 해석</strong>
+      <p>정확히 맞춘 비율만 보면 등급 오차의 심각도를 놓칠 수 있다. v4.2_grade는 오차가 인접 등급 안에 머무는지, 실제 D/E를 A/B로 과소평가하는 심각 오류가 있는지를 별도로 확인한다.</p>
+      <p>생성 시각: 2026-06-13 10:05:35 UTC+09:00 / 실행 환경: <code>conda env pronii</code></p>
+    </section>
+    <section class="report-section">
+      <h2>Step 4.2. 순서형 등급 평가 리포트</h2>
+<h3>분석 목적</h3>
+<p>A~E는 단순 카테고리가 아니라 <code>A &gt; B &gt; C &gt; D &gt; E</code> 순서를 가진 등급이다. 따라서 실제 D를 C로 예측한 경우와 실제 E를 A로 예측한 경우는 같은 오분류가 아니다. v4.2_grade에서는 기존 v4 모델의 최적 하이퍼파라미터를 재사용하고, OOF 예측을 기준으로 등급 오차의 크기를 평가했다.</p>
+<h3>순서형 변환</h3>
+<div class="table-wrap"><table>
+<tr><th>grade</th><th>score</th></tr>
+<tr><td>A</td><td>1</td></tr>
+<tr><td>B</td><td>2</td></tr>
+<tr><td>C</td><td>3</td></tr>
+<tr><td>D</td><td>4</td></tr>
+<tr><td>E</td><td>5</td></tr>
+</table></div>
+<h3>추가 평가 지표</h3>
+<div class="table-wrap"><table>
+<tr><th>metric</th><th>description</th></tr>
+<tr><td>Grade MAE</td><td>A=1, B=2, C=3, D=4, E=5로 변환한 뒤 평균 절대 등급 오차를 계산한다. 낮을수록 좋다.</td></tr>
+<tr><td>Adjacent Accuracy</td><td>실제 등급과 예측 등급 차이가 0 또는 1이면 맞은 것으로 본다. 높을수록 좋다.</td></tr>
+<tr><td>Severe Error Rate</td><td>실제 D/E를 A/B로 예측한 비율이다. 취약 등급을 과소평가하는 심각 오류를 본다. 낮을수록 좋다.</td></tr>
+<tr><td>Mean Signed Error</td><td>예측 점수 - 실제 점수의 평균이다. 음수면 실제보다 좋은 등급으로 예측하는 경향, 양수면 더 나쁜 등급으로 예측하는 경향이다.</td></tr>
+</table></div>
+<h3>모델별 순서형 지표</h3>
+<div class="table-wrap"><table>
+<tr><th>model</th><th>grade_mae</th><th>adjacent_accuracy</th><th>exact_accuracy</th><th>severe_error_rate</th><th>severe_error_count</th><th>vulnerable_support</th><th>mean_signed_error</th></tr>
+<tr><td>XGBoostClassifier</td><td>0.5052</td><td>0.899</td><td>0.6289</td><td>0</td><td>0</td><td>183</td><td>0.2371</td></tr>
+<tr><td>ExtraTreesClassifier</td><td>0.5361</td><td>0.8804</td><td>0.5938</td><td>0</td><td>0</td><td>183</td><td>0.033</td></tr>
+<tr><td>RandomForestClassifier</td><td>0.4948</td><td>0.901</td><td>0.6062</td><td>0.0109</td><td>2</td><td>183</td><td>-0.0454</td></tr>
+</table></div>
+<h3>RandomForest와 XGBoost 비교</h3>
+<div class="table-wrap"><table>
+<tr><th>model</th><th>grade_mae</th><th>adjacent_accuracy</th><th>exact_accuracy</th><th>severe_error_rate</th><th>severe_error_count</th><th>vulnerable_support</th><th>mean_signed_error</th></tr>
+<tr><td>XGBoostClassifier</td><td>0.5052</td><td>0.899</td><td>0.6289</td><td>0</td><td>0</td><td>183</td><td>0.2371</td></tr>
+<tr><td>RandomForestClassifier</td><td>0.4948</td><td>0.901</td><td>0.6062</td><td>0.0109</td><td>2</td><td>183</td><td>-0.0454</td></tr>
+</table></div>
+<p>기존 v4의 Macro F1 기준 최종 모델은 <code>RandomForestClassifier</code>이다. 그러나 순서형 관점에서는 <code>Grade MAE</code>가 낮고 <code>Adjacent Accuracy</code>가 높은 모델이 등급 경향성을 더 잘 학습했다고 볼 수 있다. Severe Error Rate는 실제 D/E 공연을 A/B로 예측하는 정책상 위험한 오류를 따로 분리해 보여준다.</p>
+<h3>등급 오차 거리 분포</h3>
+<div class="table-wrap"><table>
+<tr><th>model</th><th>distance_0_exact</th><th>distance_1_adjacent</th><th>distance_2</th><th>distance_3</th><th>distance_4</th></tr>
+<tr><td>RandomForestClassifier</td><td>294</td><td>143</td><td>47</td><td>1</td><td>0</td></tr>
+<tr><td>ExtraTreesClassifier</td><td>288</td><td>139</td><td>53</td><td>5</td><td>0</td></tr>
+<tr><td>XGBoostClassifier</td><td>305</td><td>131</td><td>33</td><td>16</td><td>0</td></tr>
+</table></div>
+<p>정확히 맞춘 비율이 낮더라도 <code>distance_1_adjacent</code>가 크고 <code>distance_2</code> 이상이 작다면, 모델이 등급의 방향성은 어느 정도 학습했다고 해석할 수 있다. 반대로 distance가 큰 오류가 많으면 등급 순서 정보를 충분히 반영하지 못한 것이다.</p>
+<h3>Severe Error 사례</h3>
+<p>아래는 실제 D/E를 A/B로 예측한 심각 오류 사례 일부다. 전체 파일은 <code>reports/accessibility/accessibility_ordinal_severe_errors_v4_2_grade.csv</code>에 저장했다.</p>
+<div class="table-wrap"><table>
+<tr><th>model</th><th>actual_grade</th><th>predicted_grade</th><th>abs_error</th><th>title</th><th>start_date</th><th>genre_group</th><th>venue</th></tr>
+<tr><td>RandomForestClassifier</td><td>E</td><td>B</td><td>3</td><td>손민수 피아노 리사이틀 -바흐 골드베르크 변주곡</td><td>2024-10-13</td><td>클래식</td><td>콘서트홀</td></tr>
+<tr><td>RandomForestClassifier</td><td>D</td><td>B</td><td>2</td><td>유키 구라모토 내한 25주년 기념 콘서트</td><td>2024-06-07</td><td>클래식</td><td>콘서트홀</td></tr>
+</table></div>
+<h3>산출물</h3>
+<ul>
+<li>HTML 리포트: <code>reports/accessibility/accessibility_project_summary_v4_2_grade.html</code></li>
+<li>순서형 메트릭 JSON: <code>reports/accessibility/accessibility_metrics_v4_2_grade.json</code></li>
+<li>OOF 예측 CSV: <code>reports/accessibility/accessibility_ordinal_oof_predictions_v4_2_grade.csv</code></li>
+<li>Severe error CSV: <code>reports/accessibility/accessibility_ordinal_severe_errors_v4_2_grade.csv</code></li>
+</ul>
+    </section>
+  </main>
+</body>
+</html>
