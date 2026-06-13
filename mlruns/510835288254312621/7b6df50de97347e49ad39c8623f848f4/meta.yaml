@@ -1,0 +1,14 @@
+artifact_uri: file:///home/jini/26-1/accessibility-wheelchair/mlruns/510835288254312621/7b6df50de97347e49ad39c8623f848f4/artifacts
+end_time: 1781312857979
+entry_point_name: ''
+experiment_id: '510835288254312621'
+lifecycle_stage: active
+run_id: 7b6df50de97347e49ad39c8623f848f4
+run_name: SoftVotingEnsemble
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1781312857798
+status: 3
+tags: []
+user_id: jini

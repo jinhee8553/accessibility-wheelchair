@@ -1,0 +1,14 @@
+artifact_uri: file:///home/jini/26-1/accessibility-wheelchair/mlruns/510835288254312621/19af7b1d59b54a5abb6ff9c4006e4450/artifacts
+end_time: 1781312890184
+entry_point_name: ''
+experiment_id: '510835288254312621'
+lifecycle_stage: active
+run_id: 19af7b1d59b54a5abb6ff9c4006e4450
+run_name: StackingEnsemble
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1781312889966
+status: 3
+tags: []
+user_id: jini

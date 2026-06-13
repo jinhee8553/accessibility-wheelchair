@@ -4,7 +4,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin, clone
 from sklearn.preprocessing import LabelEncoder
 
 
-class LabelEncodedClassifier(BaseEstimator, ClassifierMixin):
+class LabelEncodedClassifier(ClassifierMixin, BaseEstimator):
     """Adapter for estimators that require integer class labels."""
 
     _estimator_type = "classifier"
@@ -30,4 +30,3 @@ class LabelEncodedClassifier(BaseEstimator, ClassifierMixin):
     @property
     def feature_importances_(self):
         return self.estimator_.feature_importances_
-

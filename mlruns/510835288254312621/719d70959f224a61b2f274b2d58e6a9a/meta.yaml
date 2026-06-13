@@ -1,0 +1,14 @@
+artifact_uri: file:///home/jini/26-1/accessibility-wheelchair/mlruns/510835288254312621/719d70959f224a61b2f274b2d58e6a9a/artifacts
+end_time: 1781312846917
+entry_point_name: ''
+experiment_id: '510835288254312621'
+lifecycle_stage: active
+run_id: 719d70959f224a61b2f274b2d58e6a9a
+run_name: RandomForest
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1781312842349
+status: 3
+tags: []
+user_id: jini

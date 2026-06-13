@@ -1,0 +1,14 @@
+artifact_uri: file:///home/jini/26-1/accessibility-wheelchair/mlruns/510835288254312621/04f6216a4f5e4699ae1a1bfe279368fd/artifacts
+end_time: 1781312820982
+entry_point_name: ''
+experiment_id: '510835288254312621'
+lifecycle_stage: active
+run_id: 04f6216a4f5e4699ae1a1bfe279368fd
+run_name: XGBoost
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1781312820734
+status: 3
+tags: []
+user_id: jini
