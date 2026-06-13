@@ -1,0 +1,14 @@
+artifact_uri: file:///home/jini/26-1/accessibility-wheelchair/mlruns/351378308998889680/50ef459f548d42b587df007e39080eab/artifacts
+end_time: 1781312968378
+entry_point_name: ''
+experiment_id: '351378308998889680'
+lifecycle_stage: active
+run_id: 50ef459f548d42b587df007e39080eab
+run_name: Ordinal_ExtraTrees
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1781312965338
+status: 3
+tags: []
+user_id: jini

@@ -10,7 +10,11 @@ from pydantic import BaseModel, Field
 
 
 ROOT = Path(__file__).resolve().parents[2]
-MODEL_FILE = ROOT / "artifacts" / "accessibility_classifier.joblib"
+MODEL_FILES = [
+    ROOT / "artifacts" / "accessibility_classifier_ordinal.joblib",
+    ROOT / "artifacts" / "accessibility_classifier_ensemble.joblib",
+    ROOT / "artifacts" / "accessibility_classifier.joblib",
+]
 
 
 class AccessibilityRequest(BaseModel):
@@ -23,20 +27,28 @@ class AccessibilityRequest(BaseModel):
 
 
 def load_model_bundle() -> dict[str, Any]:
-    if not MODEL_FILE.exists():
-        raise RuntimeError("모델 파일이 없습니다. 먼저 `python3 src/models/train.py`를 실행하세요.")
-    return joblib.load(MODEL_FILE)
+    for model_file in MODEL_FILES:
+        if model_file.exists():
+            return joblib.load(model_file)
+    raise RuntimeError("모델 파일이 없습니다. 먼저 학습 스크립트를 실행하세요.")
 
 
 bundle = load_model_bundle()
 app = FastAPI(title="SAC Accessibility Classifier", version="1.0.0")
 
 
+def best_model_name() -> str:
+    best_model = bundle.get("metrics", {}).get("best_model", "unknown")
+    if isinstance(best_model, dict):
+        return str(best_model.get("name", "unknown"))
+    return str(best_model)
+
+
 @app.get("/health")
 def health() -> dict[str, Any]:
     return {
         "status": "ok",
-        "model": bundle["metrics"]["best_model"]["name"],
+        "model": best_model_name(),
         "target": bundle["target"],
         "features": bundle["features"],
     }
@@ -50,9 +62,9 @@ def predict(payload: AccessibilityRequest) -> dict[str, Any]:
     response: dict[str, Any] = {"prediction": label}
     if hasattr(pipeline, "predict_proba"):
         probabilities = pipeline.predict_proba(row)[0]
+        classes = getattr(pipeline, "classes_", bundle.get("label_order", []))
         response["probabilities"] = {
             class_label: float(probability)
-            for class_label, probability in zip(pipeline.classes_, probabilities)
+            for class_label, probability in zip(classes, probabilities)
         }
     return response
-
