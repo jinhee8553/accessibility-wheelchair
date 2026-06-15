@@ -378,10 +378,4 @@ dvc pull
 
 Run 산출물은 순차 커밋으로 보존되어 있으며, README에서는 개별 Run을 반복 설명하지 않습니다. 실험별 세부 비교는 리포트 파일과 MLflow 로그를 기준으로 확인합니다.
 
----
 
-## 16. Commit Message
-
-```text
-Add FastAPI dashboard demo
-```
