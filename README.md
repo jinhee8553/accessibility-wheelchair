@@ -243,6 +243,16 @@ python3 src/models/train.py
 uvicorn src.api.main:app --reload --port 8000
 ```
 
+8000 포트가 이미 사용 중이면 `--port 8001`처럼 다른 포트로 실행합니다.
+
+### 5. Open dashboard demo
+
+브라우저에서 FastAPI 대시보드 데모 페이지를 확인합니다.
+
+```text
+http://127.0.0.1:8000/demo
+```
+
 ---
 
 ## 11. API Example
@@ -366,4 +376,12 @@ dvc pull
 * API 기반 활용 가능성
 * MLOps 흐름의 문서화
 
+Run 산출물은 순차 커밋으로 보존되어 있으며, README에서는 개별 Run을 반복 설명하지 않습니다. 실험별 세부 비교는 리포트 파일과 MLflow 로그를 기준으로 확인합니다.
 
+---
+
+## 16. Commit Message
+
+```text
+Add FastAPI dashboard demo
+```
